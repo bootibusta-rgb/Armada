@@ -1,0 +1,98 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper: true if user is admin
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.admin == true;
+    }
+
+    // Users: any authenticated can read (for names/ratings in ride flow); only owner can write
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+      // Driver vehicles subcollection
+      match /vehicles/{vehicleId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Rides: only rider creates; read if rider/driver or (bidding + driver); no deletes.
+    // Past trips stay private (rider/driver-only). If adding public ride history (e.g. ratings),
+    // double-check this read rule—admin can see all; others are restricted.
+    match /rides/{rideId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.riderId;
+      allow read: if request.auth != null
+        && (isAdmin()
+            || resource.data.riderId == request.auth.uid
+            || resource.data.driverId == request.auth.uid
+            || (resource.data.status == 'bidding'
+                && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver'));
+      allow update: if request.auth != null
+        && (resource.data.riderId == request.auth.uid || resource.data.driverId == request.auth.uid);
+      allow delete: if false;
+      match /bids/{bidId} {
+        allow read: if request.auth != null
+          && (get(/databases/$(database)/documents/rides/$(rideId)).data.riderId == request.auth.uid
+              || get(/databases/$(database)/documents/rides/$(rideId)).data.driverId == request.auth.uid
+              || (get(/databases/$(database)/documents/rides/$(rideId)).data.status == 'bidding'
+                  && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'driver'));
+        allow create: if request.auth != null
+          && ((request.resource.data.riderCounter == true && request.auth.uid == request.resource.data.riderId)
+              || (request.resource.data.riderCounter != true && request.auth.uid == request.resource.data.driverId));
+        allow update, delete: if false;
+      }
+    }
+
+    // Corporate shifts: company creates/manages; driver can accept when status is 'open'
+    match /corporateShifts/{shiftId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && (resource.data.companyId == request.auth.uid
+            || resource.data.driverId == request.auth.uid
+            || (resource.data.status == 'open' && request.resource.data.driverId == request.auth.uid));
+      allow delete: if request.auth != null && resource.data.companyId == request.auth.uid;
+    }
+
+    // Earnings: read-only for driver; admin reads all
+    match /earnings/{id} {
+      allow read: if request.auth != null
+        && (resource.data.driverId == request.auth.uid || isAdmin());
+      allow write: if false;
+    }
+
+    // Food orders: vendor updates own; authenticated read/create
+    match /food_orders/{orderId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && resource.data.vendorId == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.vendorId;
+      allow delete: if false;
+    }
+
+    // Emergency calls: admin reads all
+    match /emergency_calls/{callId} {
+      allow read: if request.auth != null
+        && (isAdmin()
+            || resource.data.fromUid == request.auth.uid
+            || resource.data.toUid == request.auth.uid);
+      allow create: if request.auth != null;
+      allow update: if request.auth != null
+        && (resource.data.fromUid == request.auth.uid || resource.data.toUid == request.auth.uid);
+      allow delete: if false;
+    }
+
+    // Announcements: read-only
+    match /announcements/{id} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Lock any unmatched collection
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

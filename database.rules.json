@@ -1,0 +1,26 @@
+{
+  "rules": {
+    "locations": {
+      "drivers": {
+        "$driverId": {
+          ".read": "auth != null",
+          ".write": "auth.uid == $driverId"
+        }
+      }
+    },
+    "chats": {
+      "$rideId": {
+        "messages": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
+    },
+    "webrtc_signaling": {
+      "$callId": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
+    }
+  }
+}

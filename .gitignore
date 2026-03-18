@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+
+# Environment (never commit secrets)
+.env
+.env.local
+.env.*.local
+
+# Build
+dist/
+build/
+.expo/
+web-build/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*

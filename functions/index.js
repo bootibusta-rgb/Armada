@@ -184,3 +184,23 @@ exports.notifyDriverApproaching = functions.https.onCall(async (data, context) =
   );
   return { ok: true };
 });
+
+/** When a rider orders food from a vendor, notify the vendor */
+exports.onFoodOrderCreate = functions.firestore
+  .document('food_orders/{orderId}')
+  .onCreate(async (snap, ctx) => {
+    const order = snap.data();
+    const vendorId = order?.vendorId;
+    if (!vendorId) return;
+    const userSnap = await admin.firestore().collection('users').doc(vendorId).get();
+    const token = userSnap.data()?.pushToken;
+    if (!token) return;
+    const items = order?.items?.length || 0;
+    const total = order?.itemsTotal || 0;
+    await sendExpoPush(
+      token,
+      'New food order',
+      `${items} item(s) • J$${total} – tap to view`,
+      { orderId: snap.id, rideId: order?.rideId, type: 'food_order' }
+    );
+  });

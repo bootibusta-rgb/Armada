@@ -17,6 +17,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { createRideRequest } from '../../services/rideService';
 import VoiceBiddingButton from '../../components/VoiceBiddingButton';
 import { haversineKm } from '../../utils/haversine';
+import { getDistanceBasedFare, getVendorsNearRoute } from '../../utils/fareUtils';
 import { REDEEM_DISCOUNT } from '../../services/iriCoinsService';
 import { validatePromo, getPromoDiscount } from '../../services/promoService';
 import { subscribeToVendors } from '../../services/vendorService';
@@ -91,6 +92,8 @@ export default function RiderHomeScreen({ navigation, route }) {
   const [vendors, setVendors] = useState(FALLBACK_VENDORS);
   const [routeHistory, setRouteHistory] = useState([]);
   const [isOffline, setIsOffline] = useState(false);
+  const [popupVendor, setPopupVendor] = useState(null);
+  const [popupDismissed, setPopupDismissed] = useState(false);
 
   useEffect(() => {
     const unsub = NetInfo.addEventListener((s) => setIsOffline(!(s?.isConnected ?? true)));
@@ -107,11 +110,38 @@ export default function RiderHomeScreen({ navigation, route }) {
   }, [rebook.rebookPickup, rebook.rebookDropoff]);
 
   useEffect(() => {
+    const suggested = getDistanceBasedFare(pickup, dropoff);
+    setBidPrice(String(suggested));
+  }, [pickup, dropoff]);
+
+  useEffect(() => {
+    setPopupDismissed(false);
+  }, [pickup, dropoff]);
+
+  useEffect(() => {
     const unsub = subscribeToVendors((v) => {
       setVendors(v.length > 0 ? v : FALLBACK_VENDORS);
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (popupDismissed || foodStop || !pickup?.trim() || !dropoff?.trim()) return;
+    const near = getVendorsNearRoute(vendors, pickup, dropoff);
+    if (near.length === 0) return;
+    const timer = setTimeout(() => {
+      const random = near[Math.floor(Math.random() * near.length)];
+      setPopupVendor(random);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [pickup, dropoff, vendors, foodStop, popupDismissed]);
+
+  const handlePopupAddStop = (vendor) => {
+    setPopupVendor(null);
+    setPopupDismissed(true);
+    setSelectedVendor(vendor);
+    setFoodStopModalVisible(true);
+  };
 
   const coins = userProfile?.irieCoins ?? 150;
   const canRedeem = coins >= 100;
@@ -280,10 +310,32 @@ export default function RiderHomeScreen({ navigation, route }) {
             key={v.id}
             coordinate={{ latitude: v.lat, longitude: v.lng }}
             title={v.name}
+            description="Tap to add as stop"
             pinColor={v.pinColor || 'orange'}
+            onPress={() => {
+              setSelectedVendor(v);
+              setFoodStopModalVisible(true);
+            }}
           />
         ))}
       </MapView>
+      {popupVendor && (
+        <TouchableOpacity
+          style={styles.foodPopup}
+          onPress={() => handlePopupAddStop(popupVendor)}
+          activeOpacity={0.9}
+        >
+          <Text style={styles.foodPopupTitle}>🍔 Add stop?</Text>
+          <Text style={styles.foodPopupVendor}>{popupVendor.name} is on your route</Text>
+          <Text style={styles.foodPopupHint}>Tap to add as food stop</Text>
+          <TouchableOpacity
+            style={styles.foodPopupDismiss}
+            onPress={(e) => { e.stopPropagation(); setPopupVendor(null); setPopupDismissed(true); }}
+          >
+            <Text style={styles.foodPopupDismissText}>Not now</Text>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      )}
       <View style={styles.overlay}>
         <OfflineBanner visible={isOffline} showCached={isOffline && routeHistory.length > 0} />
         <Text style={styles.coins}>🇯🇲 Armada Coins: {userProfile?.irieCoins ?? 150}</Text>
@@ -736,4 +788,25 @@ const createStyles = (theme) => StyleSheet.create({
     alignItems: 'center',
   },
   modalConfirmText: { color: theme.colors.white, fontWeight: 'bold' },
+  foodPopup: {
+    position: 'absolute',
+    top: 60,
+    left: 16,
+    right: 16,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: theme.colors.orange,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  foodPopupTitle: { fontSize: 16, fontWeight: 'bold', color: theme.colors.primary, marginBottom: 4 },
+  foodPopupVendor: { fontSize: 14, color: theme.colors.text, marginBottom: 4 },
+  foodPopupHint: { fontSize: 12, color: theme.colors.orange, fontWeight: '600', marginBottom: 8 },
+  foodPopupDismiss: { alignSelf: 'flex-end' },
+  foodPopupDismissText: { fontSize: 12, color: theme.colors.textSecondary },
 });

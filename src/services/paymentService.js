@@ -67,7 +67,7 @@ export const processCorporateSubscription = async (amount = 50000) => {
   return { success: true, logged: true };
 };
 
+/** Prefer vendorSubscriptionPayPalService.payVendorSubscriptionWithPayPal (PayPal Orders + Cloud Functions). */
 export const processVendorSubscription = async (planId, amount) => {
-  // In production: PayPal/Stripe for vendor premium
   return { success: true, transactionId: `vendor_${planId}_${Date.now()}` };
 };

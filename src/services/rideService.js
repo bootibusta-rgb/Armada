@@ -11,11 +11,12 @@ import {
   onSnapshot,
   serverTimestamp,
 } from 'firebase/firestore';
-import { ref, set, onValue } from 'firebase/database';
+import { ref, set, onValue, get } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
 import { db, realtimeDb, functions, isFirebaseReady } from '../config/firebase';
 import { createFoodOrder } from './foodOrderService';
 import { analyticsEvents } from './analyticsService';
+import { haversineKm } from '../utils/haversine';
 
 export const createRideRequest = async (rideData) => {
   if (!isFirebaseReady || !db) throw new Error('Firebase not configured');
@@ -103,6 +104,21 @@ export const addBid = async (rideId, bidData) => {
 
 export const updateRide = async (rideId, updates) => {
   if (!isFirebaseReady || !db || !rideId) throw new Error('Firebase not configured or ride not found');
+  // When ride is accepted, write participants to RTDB so chat rules can validate access
+  if (updates.status === 'accepted' && updates.driverId && realtimeDb) {
+    try {
+      const rideSnap = await getDoc(doc(db, 'rides', rideId));
+      const riderId = rideSnap.exists() ? rideSnap.data().riderId : null;
+      if (riderId) {
+        await set(ref(realtimeDb, `chats/${rideId}/_participants`), {
+          riderId,
+          driverId: updates.driverId,
+        });
+      }
+    } catch (e) {
+      console.warn('Chat participants init failed:', e);
+    }
+  }
   await updateDoc(doc(db, 'rides', rideId), {
     ...updates,
     updatedAt: serverTimestamp(),
@@ -154,7 +170,12 @@ export const subscribeToDriverActiveRide = (driverId, callback) => {
   });
 };
 
+/**
+ * Online drivers near a point. Uses RTDB `locations/drivers/{id}` (one read) + Firestore online list.
+ * If no drivers fall within radius but some are online without location, returns all online (fallback).
+ */
 export const getNearbyDrivers = async (lat, lng, radiusKm = 10) => {
+  if (!isFirebaseReady || !db) return [];
   const driversRef = collection(db, 'users');
   const q = query(
     driversRef,
@@ -162,7 +183,45 @@ export const getNearbyDrivers = async (lat, lng, radiusKm = 10) => {
     where('isOnline', '==', true)
   );
   const snap = await getDocs(q);
-  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  const online = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+  const hasPickup =
+    typeof lat === 'number' &&
+    typeof lng === 'number' &&
+    !Number.isNaN(lat) &&
+    !Number.isNaN(lng);
+
+  if (!hasPickup || !realtimeDb) {
+    return online;
+  }
+
+  let locations = {};
+  try {
+    const locSnap = await get(ref(realtimeDb, 'locations/drivers'));
+    locations = locSnap.val() || {};
+  } catch (e) {
+    return online;
+  }
+
+  const withDistance = online.map((driver) => {
+    const loc = locations[driver.id];
+    const dlat = loc?.latitude;
+    const dlng = loc?.longitude;
+    if (typeof dlat !== 'number' || typeof dlng !== 'number') {
+      return { ...driver, distanceKm: null };
+    }
+    return { ...driver, distanceKm: haversineKm(lat, lng, dlat, dlng) };
+  });
+
+  const inRadius = withDistance.filter(
+    (d) => d.distanceKm != null && d.distanceKm <= radiusKm
+  );
+  if (inRadius.length > 0) {
+    return inRadius.sort((a, b) => a.distanceKm - b.distanceKm);
+  }
+
+  // No RTDB positions in range — keep bidding usable
+  return online;
 };
 
 export const getRidesForUser = async (userId, role) => {

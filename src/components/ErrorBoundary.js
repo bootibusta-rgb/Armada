@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { captureException } from '../config/sentry';
 
 export default class ErrorBoundary extends React.Component {
   state = { hasError: false, error: null };
@@ -10,6 +11,7 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, info) {
     console.error('ErrorBoundary:', error, info);
+    captureException(error, { contexts: { react: { componentStack: info.componentStack } } });
   }
 
   render() {

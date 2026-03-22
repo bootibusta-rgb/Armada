@@ -17,24 +17,32 @@ This guide covers setting up PayPal for the payment screen (web). The flow uses 
 2. Log in with your PayPal account (or create one)
 3. Go to **Dashboard** → **My Apps & Credentials**
 
-### 2. Create an App and Get Client ID
+### 2. Create an App and Get Client ID (Live)
+
+Armada is configured for **PayPal Live** (real payments). Use credentials from the **Live** environment only.
 
 1. Under **REST API apps**, click **Create App**
 2. Name it (e.g., "Armada Ride Share")
-3. For **Sandbox** (testing): use the Sandbox Client ID
-4. For **Production** (live): switch to Live and use the Live Client ID
+3. Toggle **Live** (not Sandbox) and copy the **Live Client ID** into `.env` as `EXPO_PUBLIC_PAYPAL_CLIENT_ID`
+4. For **Pay Now** links on native, use a button/link created under your **Live** business account
 
 ### 3. Configure .env
 
-Add to your `.env` file:
-
 ```env
-# PayPal SDK (required for web card payments)
-EXPO_PUBLIC_PAYPAL_CLIENT_ID=your_sandbox_or_live_client_id
+EXPO_PUBLIC_PAYPAL_CLIENT_ID=your_live_client_id
+EXPO_PUBLIC_PAYPAL_PAYMENT_LINK=https://www.paypal.com/ncp/payment/...   # Live Pay Now link
 ```
 
-- **Testing**: Use your Sandbox Client ID
-- **Production**: Use your Live Client ID (different from Sandbox)
+**Cloud Functions (required for server verification):** use the **same Live app**’s secret:
+
+```bash
+firebase functions:config:set paypal.client_id="YOUR_LIVE_CLIENT_ID" paypal.client_secret="YOUR_LIVE_SECRET"
+firebase deploy --only functions
+```
+
+`verifyPayPalCapture` calls **live** PayPal APIs (`api-m.paypal.com`). Sandbox secrets will fail verification.
+
+Optional **Sandbox** (local testing only): use Sandbox Client ID in a separate dev `.env` and Sandbox Function config — never mix Sandbox client with Live secret or vice versa.
 
 ### 4. Enable Guest Checkout (Optional)
 

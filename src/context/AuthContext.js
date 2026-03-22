@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { onAuthStateChanged, signOut as firebaseSignOut } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
-import { auth, db, isFirebaseReady } from '../config/firebase';
+import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
+import { httpsCallable } from 'firebase/functions';
+import { auth, functions, isFirebaseReady } from '../config/firebase';
+import { getUserProfile, signOut as authSignOut, useNativeAuth } from '../services/authService';
 import { registerForPushNotificationsAsync, savePushToken } from '../services/notificationService';
 
 const AuthContext = createContext({});
@@ -15,6 +16,37 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (useNativeAuth) {
+      const { getAuth, onAuthStateChanged } = require('@react-native-firebase/auth');
+      const rnAuth = getAuth();
+      const unsubscribe = onAuthStateChanged(rnAuth, async (firebaseUser) => {
+        if (demoMode) return;
+        setUser(firebaseUser);
+        if (firebaseUser) {
+          try {
+            // Sync RNFB auth to Firebase JS SDK so Firestore has permissions
+            if (isFirebaseReady && functions) {
+              const idToken = await firebaseUser.getIdToken();
+              const getCustomToken = httpsCallable(functions, 'getCustomToken');
+              const { data } = await getCustomToken({ idToken });
+              if (data?.customToken) {
+                await signInWithCustomToken(auth, data.customToken);
+              }
+            }
+            const profile = await getUserProfile(firebaseUser.uid);
+            setUserProfile(profile);
+            const token = await registerForPushNotificationsAsync();
+            if (token) savePushToken(firebaseUser.uid, token);
+          } catch (e) {
+            setUserProfile(null);
+          }
+        } else {
+          setUserProfile(null);
+        }
+        setLoading(false);
+      });
+      return unsubscribe;
+    }
     if (!isFirebaseReady || !auth) {
       setLoading(false);
       return;
@@ -24,9 +56,8 @@ export function AuthProvider({ children }) {
       setUser(firebaseUser);
       if (firebaseUser) {
         try {
-          const profileRef = doc(db, 'users', firebaseUser.uid);
-          const profileSnap = await getDoc(profileRef);
-          setUserProfile(profileSnap.exists() ? { id: profileSnap.id, ...profileSnap.data() } : null);
+          const profile = await getUserProfile(firebaseUser.uid);
+          setUserProfile(profile);
           const token = await registerForPushNotificationsAsync();
           if (token) savePushToken(firebaseUser.uid, token);
         } catch (e) {
@@ -50,20 +81,44 @@ export function AuthProvider({ children }) {
     setDemoMode(false);
     setUserProfile(null);
     setUser(null);
-    if (auth) {
-      try {
-        await firebaseSignOut(auth);
-      } catch (e) {}
-    }
+    try {
+      await authSignOut();
+    } catch (e) {}
   };
 
   const refreshUserProfile = async () => {
-    if (demoMode && userProfile) return; // Demo: update via setUserProfile
-    if (!isFirebaseReady || !auth?.currentUser) return;
+    if (demoMode && userProfile) return;
+    let uid = auth?.currentUser?.uid;
+    if (useNativeAuth) {
+      try {
+        const { getAuth } = require('@react-native-firebase/auth');
+        uid = getAuth().currentUser?.uid;
+      } catch (e) {}
+    }
+    if (!uid) return;
     try {
-      const profileRef = doc(db, 'users', auth.currentUser.uid);
-      const profileSnap = await getDoc(profileRef);
-      setUserProfile(profileSnap.exists() ? { id: profileSnap.id, ...profileSnap.data() } : null);
+      const profile = await getUserProfile(uid);
+      setUserProfile(profile);
+    } catch (e) {}
+  };
+
+  /** Switch active role between rider and driver when user is verified in both. */
+  const switchRole = async (newRole) => {
+    if (!userProfile || newRole === userProfile?.role) return;
+    const roles = userProfile?.roles || (userProfile?.role ? [userProfile.role] : []);
+    if (!roles.includes(newRole)) return;
+    if (newRole !== 'rider' && newRole !== 'driver') return;
+    const updated = { ...userProfile, role: newRole };
+    setUserProfile(updated);
+    try {
+      let uid = user?.uid || auth?.currentUser?.uid;
+      if (useNativeAuth) {
+        try {
+          const { getAuth } = require('@react-native-firebase/auth');
+          uid = getAuth().currentUser?.uid;
+        } catch (e) {}
+      }
+      if (uid) await import('../services/authService').then((m) => m.updateUserProfile(uid, { role: newRole }));
     } catch (e) {}
   };
 
@@ -76,6 +131,7 @@ export function AuthProvider({ children }) {
     loginDemo,
     logout,
     refreshUserProfile,
+    switchRole,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

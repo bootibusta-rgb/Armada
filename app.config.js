@@ -4,7 +4,16 @@ export default {
   expo: {
     name: 'Armada',
     slug: 'armada',
+    scheme: 'armada',
     version: '1.0.0',
+    description: 'Bid your price. Ride Armada. Jamaican ride-share with cash or card.',
+    extra: {
+      eas: {
+        projectId: '9d9722fe-1abf-4aea-9bb1-5bd432c3384f',
+      },
+      privacyPolicyUrl: 'https://armada-25d8a.web.app/privacy.html',
+      termsUrl: 'https://armada-25d8a.web.app/terms.html',
+    },
     orientation: 'portrait',
     icon: './assets/icon.png',
     userInterfaceStyle: 'light',
@@ -27,6 +36,7 @@ export default {
         backgroundColor: '#7C3AED',
       },
       package: 'com.armada.app',
+      googleServicesFile: './google-services.json',
       config: {
         googleMaps: {
           apiKey: process.env.EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY || 'YOUR_GOOGLE_MAPS_ANDROID_KEY',
@@ -34,6 +44,12 @@ export default {
       },
     },
     plugins: [
+      '@react-native-firebase/app',
+      '@react-native-firebase/auth',
+      [
+        'expo-build-properties',
+        { ios: { useFrameworks: 'static' } },
+      ],
       [
         'expo-location',
         {

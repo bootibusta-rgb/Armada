@@ -26,8 +26,8 @@ Use this checklist before launching to production.
 
 ### Native (Pay Now link)
 
-- `EXPO_PUBLIC_PAYPAL_PAYMENT_LINK` is already set
-- For production, create a Live Pay Now link at paypal.com if needed
+- Use a **Live** Pay Now / payment link: `EXPO_PUBLIC_PAYPAL_PAYMENT_LINK`
+- Must match your **Live** PayPal business account (same environment as the Live Client ID)
 
 ---
 

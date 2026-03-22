@@ -10,7 +10,7 @@ import {
   Modal,
   TextInput,
   Alert,
-  FlatList,
+  Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
@@ -25,6 +25,7 @@ import {
   adminDeleteShift,
   adminUpdateVehicle,
 } from '../../services/adminService';
+import { getIdTypeLabel } from '../../components/IdVerificationSection';
 
 const ADMIN_BUTTONS = [
   { key: 'users', label: 'Users', icon: 'people', color: '#6366F1', sub: 'Manage roles & profiles' },
@@ -38,7 +39,7 @@ const ADMIN_BUTTONS = [
 const RIDE_STATUSES = ['bidding', 'accepted', 'completed', 'cancelled'];
 const ORDER_STATUSES = ['pending', 'preparing', 'ready', 'delivered', 'cancelled'];
 const EMERGENCY_STATUSES = ['ringing', 'answered', 'declined', 'video-call-requested', 'ended'];
-const USER_ROLES = ['rider', 'driver', 'vendor', 'corporate', 'admin'];
+const USER_ROLES = ['rider', 'driver', 'vendor', 'corporate', 'carRental', 'admin'];
 
 export default function AdminScreen({ navigation }) {
   const { theme } = useTheme();
@@ -84,7 +85,16 @@ export default function AdminScreen({ navigation }) {
   const openEdit = (type, item) => {
     setEditModal({ visible: true, type, item });
     if (type === 'user') {
-      setEditForm({ name: item.name || '', role: item.role || 'rider', email: item.email || '', phone: item.phone || '' });
+      setEditForm({
+        name: item.name || '',
+        role: item.role || 'rider',
+        email: item.email || '',
+        phone: item.phone || '',
+        idType: item.idType || '',
+        idNumber: item.idNumber || '',
+        idDocumentUrl: item.idDocumentUrl || '',
+        idSelfieWithIdUrl: item.idSelfieWithIdUrl || '',
+      });
     } else if (type === 'ride') {
       setEditForm({ status: item.status || 'bidding', finalFare: String(item.finalFare || item.bidPrice || '') });
     } else if (type === 'order') {
@@ -286,7 +296,10 @@ export default function AdminScreen({ navigation }) {
             <TouchableOpacity key={u.id} style={styles.row} onPress={() => openEdit('user', u)}>
               <View style={styles.rowLeft}>
                 <Text style={styles.rowTitle}>{u.name || u.email || u.id?.slice(0, 12)}</Text>
-                <Text style={styles.rowSub}>{u.email || u.phone || '—'}</Text>
+                <Text style={styles.rowSub}>
+                  {u.email || u.phone || '—'}
+                  {u.idDocumentUrl ? ' • ID ✓' : ''}
+                </Text>
               </View>
               <View style={[styles.badge, { backgroundColor: getRoleColor(u.role) }]}>
                 <Text style={styles.badgeText}>{u.role || '—'}</Text>
@@ -410,6 +423,34 @@ export default function AdminScreen({ navigation }) {
                 <Field label="Email" value={editForm.email} onChange={(v) => setEditForm((f) => ({ ...f, email: v }))} />
                 <Field label="Phone" value={editForm.phone} onChange={(v) => setEditForm((f) => ({ ...f, phone: v }))} />
                 <Field label="Role" value={editForm.role} onChange={(v) => setEditForm((f) => ({ ...f, role: v }))} pickerOptions={USER_ROLES} />
+                {editForm.idType ? (
+                  <View style={styles.idInfoBox}>
+                    <Text style={styles.idInfoLabel}>ID on file</Text>
+                    <Text style={styles.idInfoText}>
+                      {getIdTypeLabel(editForm.idType)} • {editForm.idNumber || '—'}
+                    </Text>
+                    {editForm.idDocumentUrl ? (
+                      <TouchableOpacity
+                        style={styles.idOpenBtn}
+                        onPress={() => Linking.openURL(editForm.idDocumentUrl)}
+                      >
+                        <Ionicons name="open-outline" size={18} color="#FFFFFF" />
+                        <Text style={styles.idOpenBtnText}>Open ID document</Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <Text style={styles.idMissing}>No ID photo uploaded</Text>
+                    )}
+                    {editForm.idSelfieWithIdUrl ? (
+                      <TouchableOpacity
+                        style={[styles.idOpenBtn, { marginTop: 8 }]}
+                        onPress={() => Linking.openURL(editForm.idSelfieWithIdUrl)}
+                      >
+                        <Ionicons name="camera-outline" size={18} color="#FFFFFF" />
+                        <Text style={styles.idOpenBtnText}>Open selfie with ID</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+                ) : null}
               </>
             )}
             {editModal.type === 'ride' && (
@@ -470,6 +511,8 @@ function SectionCard({ title, color, children, emptyMessage }) {
 }
 
 function Field({ label, value, onChange, keyboardType, pickerOptions }) {
+  const { theme } = useTheme();
+  const styles = createStyles(theme);
   if (pickerOptions) {
     return (
       <View style={styles.field}>
@@ -503,7 +546,7 @@ function Field({ label, value, onChange, keyboardType, pickerOptions }) {
 }
 
 function getRoleColor(role) {
-  const m = { rider: '#0EA5E9', driver: '#F59E0B', vendor: '#10B981', corporate: '#6366F1', admin: '#EF4444' };
+  const m = { rider: '#0EA5E9', driver: '#F59E0B', vendor: '#10B981', corporate: '#6366F1', carRental: '#059669', admin: '#EF4444' };
   return m[role] || '#6B7280';
 }
 
@@ -624,4 +667,25 @@ const createStyles = (theme) => StyleSheet.create({
   modalCancelText: { color: theme.colors.textSecondary, fontWeight: '600' },
   modalSave: { flex: 1, padding: 14, alignItems: 'center', borderRadius: 10 },
   emptyMsg: { fontSize: 14, color: theme.colors.textSecondary, fontStyle: 'italic' },
+  idInfoBox: {
+    marginBottom: 16,
+    padding: 14,
+    backgroundColor: theme.colors.surface,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: theme.colors.primaryLight,
+  },
+  idInfoLabel: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 4 },
+  idInfoText: { fontSize: 14, color: theme.colors.text, fontWeight: '600' },
+  idOpenBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 12,
+    padding: 12,
+    backgroundColor: theme.colors.primary,
+    borderRadius: 10,
+  },
+  idOpenBtnText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 15, marginLeft: 8 },
+  idMissing: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 8, fontStyle: 'italic' },
 });

@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { sendOTP } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
+import { isProductionApp } from '../../config/appEnv';
 
 export default function PhoneAuthScreen({ navigation }) {
   const { theme } = useTheme();
@@ -28,8 +29,12 @@ export default function PhoneAuthScreen({ navigation }) {
       const confirmation = await sendOTP(phone);
       navigation.navigate('OTP', { confirmation, phone });
     } catch (e) {
-      Alert.alert('Error', e.message || 'Failed to send OTP. Use demo mode.');
-      navigation.navigate('OTP', { phone, demo: true });
+      if (isProductionApp) {
+        Alert.alert('Error', e.message || 'Failed to send OTP. Check your number and try again.');
+      } else {
+        Alert.alert('Error', e.message || 'Failed to send OTP. Use demo mode.');
+        navigation.navigate('OTP', { phone, demo: true });
+      }
     } finally {
       setLoading(false);
     }
@@ -60,12 +65,16 @@ export default function PhoneAuthScreen({ navigation }) {
           >
             <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send OTP'}</Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.demoButton}
-            onPress={() => navigation.navigate('OTP', { phone: '+18761234567', demo: true })}
-          >
-            <Text style={styles.demoText}>Demo Mode (skip OTP)</Text>
-          </TouchableOpacity>
+          {!isProductionApp && (
+            <TouchableOpacity
+              style={styles.demoButton}
+              onPress={() => navigation.navigate('OTP', { phone: phone.replace(/\s/g, '') || '+18761234567', demo: true })}
+            >
+              <Text style={styles.demoText}>
+                {Platform.OS === 'web' ? 'Demo Mode (skip OTP)' : 'Demo Mode (or use dev build for real OTP)'}
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
         <View style={styles.legalLinks}>
           <Text style={styles.legalText}>By continuing, you agree to our </Text>

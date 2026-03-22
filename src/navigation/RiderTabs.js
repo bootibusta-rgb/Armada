@@ -16,6 +16,8 @@ import IrieCoinsScreen from '../screens/rider/IrieCoinsScreen';
 import EmergencyContactsScreen from '../screens/rider/EmergencyContactsScreen';
 import EmergencyCallScreen from '../screens/rider/EmergencyCallScreen';
 import RideReceiptScreen from '../screens/rider/RideReceiptScreen';
+import RentACarScreen from '../screens/rider/RentACarScreen';
+import RentalChatScreen from '../screens/shared/RentalChatScreen';
 import { useTheme } from '../context/ThemeContext';
 
 const Tab = createBottomTabNavigator();
@@ -32,6 +34,8 @@ function RiderStack() {
       <Stack.Screen name="EmergencyCall" component={EmergencyCallScreen} />
       <Stack.Screen name="Payment" component={PaymentScreen} />
       <Stack.Screen name="RideReceipt" component={RideReceiptScreen} options={{ title: 'Receipt' }} />
+      <Stack.Screen name="RentACar" component={RentACarScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="RentalChat" component={RentalChatScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

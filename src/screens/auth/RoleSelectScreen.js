@@ -20,6 +20,7 @@ export default function RoleSelectScreen({ route, navigation }) {
     driver: { border: theme.colors.accent, bg: isDark ? theme.colors.surface : '#FFF7ED' },
     corporate: { border: theme.colors.primary, bg: isDark ? theme.colors.surface : '#FAF5FF' },
     vendor: { border: theme.colors.accent, bg: isDark ? theme.colors.surface : '#FFF7ED' },
+    carRental: { border: theme.colors.success, bg: isDark ? theme.colors.surface : '#ECFDF5' },
   };
 
   return (
@@ -61,6 +62,14 @@ export default function RoleSelectScreen({ route, navigation }) {
         <Text style={styles.emoji}>🍗</Text>
         <Text style={[styles.cardTitle, { color: theme.colors.accent }]}>Vendor</Text>
         <Text style={[styles.cardDesc, { color: theme.colors.textSecondary }]}>List your food spot for riders to pick up</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={[styles.card, { borderColor: cardColors.carRental.border, backgroundColor: cardColors.carRental.bg }]}
+        onPress={() => selectRole('carRental')}
+      >
+        <Text style={styles.emoji}>🚙</Text>
+        <Text style={[styles.cardTitle, { color: theme.colors.success }]}>Car Rental</Text>
+        <Text style={[styles.cardDesc, { color: theme.colors.textSecondary }]}>Sign up as Car Rental — plate, photos, daily rate, location</Text>
       </TouchableOpacity>
       {demo && <Text style={[styles.demoNote, { color: theme.colors.textSecondary }]}>Demo mode – using fake data</Text>}
     </ScrollView>

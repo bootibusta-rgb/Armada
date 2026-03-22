@@ -1,5 +1,6 @@
 /**
  * PayPal button for web. Uses @paypal/react-paypal-js SDK.
+ * Use a Live Client ID from developer.paypal.com (Live tab) for real charges.
  * - Fixed amount (no editable field on PayPal side)
  * - Guest checkout (debit/credit without PayPal account)
  * - Requires EXPO_PUBLIC_PAYPAL_CLIENT_ID in .env

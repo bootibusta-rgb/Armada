@@ -1,5 +1,6 @@
 /**
- * PayPal for native (iOS/Android). Opens Pay Now link in browser.
+ * PayPal for native (iOS/Android). Opens a Live Pay Now link in browser.
+ * Set EXPO_PUBLIC_PAYPAL_PAYMENT_LINK from your PayPal Live dashboard.
  * Web uses PayPalButton.web.js with react-paypal-js.
  */
 import React from 'react';

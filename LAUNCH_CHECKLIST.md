@@ -26,6 +26,16 @@ cd .. && firebase deploy --only firestore:rules
 firebase deploy --only database
 ```
 
+## 1b. Sync EAS Secrets (for production builds)
+
+After filling `.env` with your values:
+
+```bash
+npm run eas:secrets
+```
+
+This syncs all `EXPO_PUBLIC_*` vars to EAS so production builds have Firebase, Maps, PayPal, etc.
+
 ## 2. Create Development Build
 
 ### Option A: Local build (requires Android Studio / Xcode)
@@ -60,6 +70,8 @@ eas build --profile production --platform ios
 
 ## 3. Test Before Submission
 
+See `docs/E2E_TEST_CHECKLIST.md` for full checklist.
+
 - [ ] Request ride → bidding → accept → active ride → payment → receipt
 - [ ] Driver: go online → receive bid → accept → active ride
 - [ ] Push notifications (bid, accepted, driver arriving, cancelled)
@@ -89,16 +101,26 @@ eas build --profile production --platform ios
 
 ## 5. Pre-Submission Requirements
 
-- [ ] Privacy Policy URL (host your PrivacyPolicyScreen content)
+- [x] Privacy Policy URL – https://armada-25d8a.web.app/privacy.html (in EAS env)
+- [x] Terms of Service URL – https://armada-25d8a.web.app/terms.html
 - [ ] App icon (1024×1024 for iOS, 512×512 for Android)
-- [ ] Screenshots for each device size
+- [ ] Screenshots – see `docs/STORE_LISTING.md`
 - [ ] .env filled with production values (Firebase, Maps, PayPal)
 
-## 6. Optional: PayPal Production
+## 6. PayPal (Functions)
 
-For production card payments, set Firebase config:
+**Production** — required for verified card completion:
 
 ```bash
 firebase functions:config:set paypal.client_id="YOUR_LIVE_CLIENT_ID" paypal.client_secret="YOUR_LIVE_SECRET"
 firebase deploy --only functions
 ```
+
+**Local / emulator only** — if you must test without PayPal credentials (not for production):
+
+```bash
+firebase functions:config:set paypal.allow_unverified="true"
+firebase deploy --only functions
+```
+
+Remove `allow_unverified` before production or `verifyPayPalCapture` will reject unconfigured PayPal.

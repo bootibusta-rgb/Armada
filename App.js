@@ -1,6 +1,11 @@
 import './src/config/sentry';
 import React, { useEffect } from 'react';
+import { LogBox } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+
+if (__DEV__) {
+  LogBox.ignoreLogs([/event-target-shim/i]);
+}
 import { NavigationContainer } from '@react-navigation/native';
 import { AuthProvider } from './src/context/AuthContext';
 import { ThemeProvider, useTheme } from './src/context/ThemeContext';
@@ -49,7 +54,20 @@ export default function App() {
     const sub = addNotificationResponseListener((response) => {
       const data = response?.notification?.request?.content?.data;
       const rideId = data?.rideId || data?.ride_id;
-      if (rideId && navigationRef.isReady()) {
+      const requestId = data?.requestId;
+      const type = data?.type;
+      if (!navigationRef.isReady()) return;
+      if (type === 'car_rental_request' && requestId) {
+        navigationRef.navigate('Main', {
+          screen: 'MyRentals',
+          params: {
+            screen: 'CarRentalRequestOwner',
+            params: { requestId },
+          },
+        });
+        return;
+      }
+      if (rideId) {
         navigationRef.navigate('Main', {
           screen: 'Home',
           params: {

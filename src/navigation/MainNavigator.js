@@ -6,8 +6,11 @@ import RiderTabs from './RiderTabs';
 import DriverTabs from './DriverTabs';
 import CorporateTabs from './CorporateTabs';
 import VendorTabs from './VendorTabs';
+import CarRentalTabs from './CarRentalTabs';
 import AdminScreen from '../screens/admin/AdminScreen';
 import SettingsScreen from '../screens/shared/SettingsScreen';
+import RiderFormScreen from '../screens/auth/RiderFormScreen';
+import DriverFormScreen from '../screens/auth/DriverFormScreen';
 import DriverActiveRideScreen from '../screens/driver/DriverActiveRideScreen';
 import RideChatScreen from '../screens/shared/RideChatScreen';
 import EmergencyVideoCallScreen from '../screens/rider/EmergencyVideoCallScreen';
@@ -23,6 +26,7 @@ export default function MainNavigator({ userProfile }) {
   const Tabs = role === 'corporate' ? CorporateTabs
     : role === 'driver' ? DriverTabs
     : role === 'vendor' ? VendorTabs
+    : role === 'carRental' ? CarRentalTabs
     : RiderTabs;
 
   const headerOptions = {
@@ -57,6 +61,8 @@ export default function MainNavigator({ userProfile }) {
             ...headerOptions,
           }}
         />
+        <Stack.Screen name="RiderForm" component={RiderFormScreen} options={{ headerShown: true, title: 'Rider Profile', ...headerOptions }} />
+        <Stack.Screen name="DriverForm" component={DriverFormScreen} options={{ headerShown: true, title: 'Driver Profile', ...headerOptions }} />
       </Stack.Navigator>
       <NotificationsButton userProfile={userProfile} />
     </View>

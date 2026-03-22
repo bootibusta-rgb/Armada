@@ -47,7 +47,7 @@ export default function IrieCoinsScreen() {
           {coins >= 100 ? 'How to redeem' : 'Need 100 coins to redeem'}
         </Text>
       </TouchableOpacity>
-    </View>
+    </ScrollView>
   );
 }
 

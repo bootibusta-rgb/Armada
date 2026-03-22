@@ -13,9 +13,9 @@ export default function PrivacyPolicyScreen() {
       <Text style={styles.heading}>1. Information We Collect</Text>
       <Text style={styles.para}>
         Armada collects information you provide when you register: phone number, name, email (optional), 
-        ID verification details (type and number), vehicle and license information (for drivers), 
-        and emergency contact details. We collect location data during rides for matching, tracking, 
-        and safety (including emergency SOS).
+        ID verification details (type and number), a photo of the government-issued ID you select at signup, 
+        vehicle and license information (for drivers), and emergency contact details. We collect location data 
+        during rides for matching, tracking, and safety (including emergency SOS).
       </Text>
 
       <Text style={styles.heading}>2. How We Use Your Information</Text>

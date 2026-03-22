@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { verifyOTP } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
+import { isProductionApp } from '../../config/appEnv';
 
 export default function OTPScreen({ route, navigation }) {
   const { theme } = useTheme();
@@ -18,6 +19,10 @@ export default function OTPScreen({ route, navigation }) {
 
   const handleVerify = async () => {
     if (demo) {
+      if (isProductionApp) {
+        Alert.alert('Unavailable', 'Demo sign-in is disabled in this build.');
+        return;
+      }
       navigation.replace('RoleSelect', { demo: true });
       return;
     }
@@ -57,7 +62,7 @@ export default function OTPScreen({ route, navigation }) {
       >
         <Text style={styles.buttonText}>{loading ? 'Verifying...' : 'Verify'}</Text>
       </TouchableOpacity>
-      {demo && (
+      {demo && !isProductionApp && (
         <TouchableOpacity style={styles.demoButton} onPress={() => navigation.replace('RoleSelect', { demo: true })}>
           <Text style={styles.demoText}>Skip (Demo)</Text>
         </TouchableOpacity>

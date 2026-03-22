@@ -10,9 +10,25 @@
     },
     "chats": {
       "$rideId": {
-        "messages": {
+        "_participants": {
           ".read": "auth != null",
           ".write": "auth != null"
+        },
+        "messages": {
+          ".read": "auth != null && (auth.uid == root.child('chats').child($rideId).child('_participants').child('riderId').val() || auth.uid == root.child('chats').child($rideId).child('_participants').child('driverId').val())",
+          ".write": "auth != null && (auth.uid == root.child('chats').child($rideId).child('_participants').child('riderId').val() || auth.uid == root.child('chats').child($rideId).child('_participants').child('driverId').val())"
+        }
+      }
+    },
+    "rentalChats": {
+      "$requestId": {
+        "_participants": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "messages": {
+          ".read": "auth != null && (auth.uid == root.child('rentalChats').child($requestId).child('_participants').child('riderId').val() || auth.uid == root.child('rentalChats').child($requestId).child('_participants').child('ownerId').val())",
+          ".write": "auth != null && (auth.uid == root.child('rentalChats').child($requestId).child('_participants').child('riderId').val() || auth.uid == root.child('rentalChats').child($requestId).child('_participants').child('ownerId').val())"
         }
       }
     },

@@ -13,16 +13,17 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db, isFirebaseReady } from '../../config/firebase';
+import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
+import { updateUserProfile, getUserProfile } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import IdVerificationSection from '../../components/IdVerificationSection';
 import { addVehicle, uploadVehiclePhoto, uploadDocumentPhoto } from '../../services/vehicleService';
+import { uploadUserIdDocument, uploadUserSelfieWithId } from '../../services/identityVerificationService';
 
 export default function DriverFormScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { setUserProfile, loginDemo } = useAuth();
+  const { user, setUserProfile, loginDemo } = useAuth();
   const styles = createStyles(theme);
   const { demo, referredBy } = route.params || {};
   const [name, setName] = useState('');
@@ -42,7 +43,10 @@ export default function DriverFormScreen({ route, navigation }) {
   const [idType, setIdType] = useState('drivers_license');
   const [idNumber, setIdNumber] = useState('');
   const [idExpiry, setIdExpiry] = useState('');
+  const [idPhotoUri, setIdPhotoUri] = useState(null);
+  const [selfieWithIdPhotoUri, setSelfieWithIdPhotoUri] = useState(null);
   const [loading, setLoading] = useState(false);
+  const requireIdUpload = !demo && isFirebaseReady;
 
   const pickVehiclePhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -70,12 +74,24 @@ export default function DriverFormScreen({ route, navigation }) {
       Alert.alert('Error', 'Select ID type and enter your license/ID number');
       return;
     }
+    if (requireIdUpload && !idPhotoUri) {
+      Alert.alert('Error', 'Upload a clear photo of your selected ID (must match the type you chose)');
+      return;
+    }
+    if (requireIdUpload && !selfieWithIdPhotoUri) {
+      Alert.alert('Error', 'Take a selfie holding your ID next to your face');
+      return;
+    }
     if (!vehiclePhotoUri && !demo && isFirebaseReady) {
       Alert.alert('Error', 'Upload a photo of your vehicle');
       return;
     }
     if ((!make.trim() || !model.trim() || !color.trim() || !licensePlate.trim()) && !demo && isFirebaseReady) {
       Alert.alert('Error', 'Fill in vehicle details: make, model, color, license plate');
+      return;
+    }
+    if (!demo && isFirebaseReady && (!registrationPhotoUri || !fitnessPhotoUri)) {
+      Alert.alert('Error', 'Upload both registration and fitness certificate document photos');
       return;
     }
     setLoading(true);
@@ -96,8 +112,14 @@ export default function DriverFormScreen({ route, navigation }) {
         });
         return;
       }
-      const uid = auth?.currentUser?.uid;
+      const uid = user?.uid;
       if (!uid) throw new Error('Not authenticated');
+      const existing = await getUserProfile(uid);
+      const roles = [...(existing?.roles || (existing?.role ? [existing.role] : []))];
+      if (!roles.includes('driver')) roles.push('driver');
+
+      const idDocumentUrl = await uploadUserIdDocument(uid, idType, idPhotoUri);
+      const idSelfieWithIdUrl = await uploadUserSelfieWithId(uid, selfieWithIdPhotoUri);
 
       let photoUrl = null;
       if (vehiclePhotoUri) {
@@ -131,6 +153,7 @@ export default function DriverFormScreen({ route, navigation }) {
       const now = new Date().toISOString();
       const profileData = {
         role: 'driver',
+        roles,
         name: name.trim(),
         email: email.trim() || null,
         phone: phone.trim() || null,
@@ -140,19 +163,23 @@ export default function DriverFormScreen({ route, navigation }) {
         idType,
         idNumber: idNumber.trim(),
         idExpiry: idExpiry.trim() || null,
+        idDocumentUrl,
+        idSelfieWithIdUrl,
+        idDocumentUploadedAt: new Date().toISOString(),
         idVerified: true,
         rating: 4.8,
-        createdAt: now,
-        signedUpAt: now,
-        updatedAt: now,
+        createdAt: existing?.createdAt || now,
+        signedUpAt: existing?.signedUpAt || now,
       };
       if (referredBy) {
         profileData.driverSubscription = { referredBy };
       }
-      await setDoc(doc(db, 'users', uid), profileData, { merge: true });
+      await updateUserProfile(uid, profileData);
       setUserProfile({
         id: uid,
+        ...existing,
         role: 'driver',
+        roles,
         name: name.trim(),
         email: email.trim(),
         phone: phone.trim(),
@@ -161,6 +188,8 @@ export default function DriverFormScreen({ route, navigation }) {
         primaryVehicleId: vehicleId,
         idType,
         idNumber: idNumber.trim(),
+        idDocumentUrl,
+        idSelfieWithIdUrl,
         rating: 4.8,
       });
     } catch (e) {
@@ -213,6 +242,12 @@ export default function DriverFormScreen({ route, navigation }) {
           idExpiry={idExpiry}
           setIdExpiry={setIdExpiry}
           showExpiry={true}
+          idPhotoUri={idPhotoUri}
+          setIdPhotoUri={setIdPhotoUri}
+          selfieWithIdPhotoUri={selfieWithIdPhotoUri}
+          setSelfieWithIdPhotoUri={setSelfieWithIdPhotoUri}
+          requireIdPhoto={requireIdUpload}
+          driversLicenseOnly
         />
         <Text style={styles.sectionTitle}>Vehicle (required)</Text>
         <TouchableOpacity style={styles.photoBtn} onPress={pickVehiclePhoto}>
@@ -289,7 +324,7 @@ export default function DriverFormScreen({ route, navigation }) {
           onChangeText={setFitnessExpiry}
           placeholderTextColor={theme.colors.textSecondary}
         />
-        <Text style={styles.docLabel}>Document photos (optional)</Text>
+        <Text style={styles.docLabel}>Document photos (required)</Text>
         <View style={styles.docPhotoRow}>
           <TouchableOpacity style={styles.docPhotoBtn} onPress={async () => {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();

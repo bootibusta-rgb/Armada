@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import NetInfo from '@react-native-community/netinfo';
 import {
   View,
@@ -23,6 +23,9 @@ import { validatePromo, getPromoDiscount } from '../../services/promoService';
 import { subscribeToVendors } from '../../services/vendorService';
 import { getRouteHistory, addRoute } from '../../services/routeHistoryService';
 import OfflineBanner from '../../components/OfflineBanner';
+import RentalCounterOfferModal from '../../components/RentalCounterOfferModal';
+import { isFirebaseReady } from '../../config/firebase';
+import { subscribeCarRentalRequestsForRider } from '../../services/carRentalService';
 
 const FALLBACK_VENDORS = [
   {
@@ -94,6 +97,8 @@ export default function RiderHomeScreen({ navigation, route }) {
   const [isOffline, setIsOffline] = useState(false);
   const [popupVendor, setPopupVendor] = useState(null);
   const [popupDismissed, setPopupDismissed] = useState(false);
+  const [rentalCounterReq, setRentalCounterReq] = useState(null);
+  const rentalUnavailableShown = useRef(new Set());
 
   useEffect(() => {
     const unsub = NetInfo.addEventListener((s) => setIsOffline(!(s?.isConnected ?? true)));
@@ -124,6 +129,27 @@ export default function RiderHomeScreen({ navigation, route }) {
     });
     return unsub;
   }, []);
+
+  useEffect(() => {
+    if (!isFirebaseReady || userProfile?.role !== 'rider' || !userProfile?.id) {
+      setRentalCounterReq(null);
+      return undefined;
+    }
+    return subscribeCarRentalRequestsForRider(userProfile.id, (rows) => {
+      const counter = rows.find((r) => r.counterOffer?.status === 'pending');
+      setRentalCounterReq(counter || null);
+      rows.forEach((r) => {
+        if (
+          r.status === 'unavailable' &&
+          r.riderVisibleMessage &&
+          !rentalUnavailableShown.current.has(r.id)
+        ) {
+          rentalUnavailableShown.current.add(r.id);
+          Alert.alert('Car rental', r.riderVisibleMessage);
+        }
+      });
+    });
+  }, [userProfile?.id, userProfile?.role]);
 
   useEffect(() => {
     if (popupDismissed || foodStop || !pickup?.trim() || !dropoff?.trim()) return;
@@ -302,6 +328,11 @@ export default function RiderHomeScreen({ navigation, route }) {
   const styles = createStyles(theme);
   return (
     <View style={styles.container}>
+      <RentalCounterOfferModal
+        visible={!!rentalCounterReq}
+        request={rentalCounterReq}
+        onClose={() => setRentalCounterReq(null)}
+      />
       <MapView style={styles.map} region={region} initialRegion={region}>
         <Marker coordinate={{ latitude: 18.0179, longitude: -76.8099 }} title="Pickup" pinColor="green" />
         <Marker coordinate={{ latitude: 18.4712, longitude: -77.9188 }} title="Dropoff" pinColor="red" />
@@ -411,6 +442,14 @@ export default function RiderHomeScreen({ navigation, route }) {
               <Text style={styles.stopsTimeText}>+{getStopsExtraMinutes()} min</Text>
             </View>
           )}
+          <TouchableOpacity
+            style={styles.rentCarBtn}
+            onPress={() => navigation.navigate('RentACar', { pickupText: pickup })}
+            activeOpacity={0.7}
+          >
+            <Text style={styles.rentCarBtnTitle}>Rent a Car</Text>
+            <Text style={styles.rentCarBtnSub}>Add Stop — browse nearby Car Rental listings</Text>
+          </TouchableOpacity>
           <TextInput
             style={styles.input}
             placeholder="Dropoff location"
@@ -641,6 +680,26 @@ const createStyles = (theme) => StyleSheet.create({
     alignItems: 'center',
   },
   addStopText: { color: theme.colors.primary, fontWeight: '600', fontSize: 14 },
+  rentCarBtn: {
+    padding: 14,
+    borderRadius: 10,
+    marginBottom: 12,
+    borderWidth: 2,
+    borderColor: theme.colors.success,
+    backgroundColor: theme.colors.success + '12',
+  },
+  rentCarBtnTitle: {
+    color: theme.colors.success,
+    fontWeight: '700',
+    fontSize: 15,
+    textAlign: 'center',
+  },
+  rentCarBtnSub: {
+    color: theme.colors.textSecondary,
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 4,
+  },
   bidRow: { marginBottom: 12 },
   label: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 4 },
   bidInput: {

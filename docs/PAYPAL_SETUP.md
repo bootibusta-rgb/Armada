@@ -6,18 +6,25 @@
 2. Sign in or create an account
 3. Go to **Dashboard** → **My Apps & Credentials**
 
-## 2. Create App & Get Client ID
+## 2. Create App & Get Client ID (Live)
+
+Production Armada uses **PayPal Live** (real payments).
 
 1. Under **REST API apps**, click **Create App**
 2. Name it (e.g. "Armada")
-3. Use **Sandbox** for testing, **Live** for production
-4. Copy the **Client ID**
+3. Select **Live** and copy the **Live Client ID**
+4. For native Pay Now, create a **Live** payment link in the PayPal dashboard
 
 ## 3. Add to .env
 
 ```env
-EXPO_PUBLIC_PAYPAL_CLIENT_ID=your_client_id_here
+EXPO_PUBLIC_PAYPAL_CLIENT_ID=your_live_client_id
+EXPO_PUBLIC_PAYPAL_PAYMENT_LINK=https://www.paypal.com/ncp/payment/...
 ```
+
+Match **Firebase Functions** to the same Live app:
+
+`firebase functions:config:set paypal.client_id="..." paypal.client_secret="..."` then `firebase deploy --only functions`.
 
 Restart the dev server after changing `.env`.
 

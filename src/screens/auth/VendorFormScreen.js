@@ -10,15 +10,16 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db, isFirebaseReady } from '../../config/firebase';
+import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
+import { updateUserProfile } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import IdVerificationSection from '../../components/IdVerificationSection';
+import { uploadUserIdDocument, uploadUserSelfieWithId } from '../../services/identityVerificationService';
 
 export default function VendorFormScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { setUserProfile, loginDemo } = useAuth();
+  const { user, setUserProfile, loginDemo } = useAuth();
   const styles = createStyles(theme);
   const { demo } = route.params || {};
   const [vendorName, setVendorName] = useState('');
@@ -28,7 +29,10 @@ export default function VendorFormScreen({ route, navigation }) {
   const [menuItems, setMenuItems] = useState('');
   const [idType, setIdType] = useState('');
   const [idNumber, setIdNumber] = useState('');
+  const [idPhotoUri, setIdPhotoUri] = useState(null);
+  const [selfieWithIdPhotoUri, setSelfieWithIdPhotoUri] = useState(null);
   const [loading, setLoading] = useState(false);
+  const requireIdUpload = !demo && isFirebaseReady;
 
   const handleSubmit = async () => {
     if (!vendorName.trim()) {
@@ -37,6 +41,14 @@ export default function VendorFormScreen({ route, navigation }) {
     }
     if (!idType || !idNumber.trim()) {
       Alert.alert('Error', 'Select ID type and enter your ID number');
+      return;
+    }
+    if (requireIdUpload && !idPhotoUri) {
+      Alert.alert('Error', 'Upload a clear photo of your selected ID');
+      return;
+    }
+    if (requireIdUpload && !selfieWithIdPhotoUri) {
+      Alert.alert('Error', 'Take a selfie holding your ID next to your face');
       return;
     }
     const itemNames = menuItems
@@ -69,26 +81,26 @@ export default function VendorFormScreen({ route, navigation }) {
         });
         return;
       }
-      const uid = auth?.currentUser?.uid;
+      const uid = user?.uid;
       if (!uid) throw new Error('Not authenticated');
-      await setDoc(
-        doc(db, 'users', uid),
-        {
-          role: 'vendor',
-          vendorId,
-          name: vendorName.trim(),
-          address: address.trim() || null,
-          lat: latNum,
-          lng: lngNum,
-          items: itemNames,
-          menu,
-          idType,
-          idNumber: idNumber.trim(),
-          idVerified: true,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      const idDocumentUrl = await uploadUserIdDocument(uid, idType, idPhotoUri);
+      const idSelfieWithIdUrl = await uploadUserSelfieWithId(uid, selfieWithIdPhotoUri);
+      await updateUserProfile(uid, {
+        role: 'vendor',
+        vendorId,
+        name: vendorName.trim(),
+        address: address.trim() || null,
+        lat: latNum,
+        lng: lngNum,
+        items: itemNames,
+        menu,
+        idType,
+        idNumber: idNumber.trim(),
+        idDocumentUrl,
+        idSelfieWithIdUrl,
+        idDocumentUploadedAt: new Date().toISOString(),
+        idVerified: true,
+      });
       setUserProfile({
         id: uid,
         role: 'vendor',
@@ -101,6 +113,8 @@ export default function VendorFormScreen({ route, navigation }) {
         menu,
         idType,
         idNumber: idNumber.trim(),
+        idDocumentUrl,
+        idSelfieWithIdUrl,
       });
     } catch (e) {
       Alert.alert('Error', e.message || 'Failed to save');
@@ -124,6 +138,11 @@ export default function VendorFormScreen({ route, navigation }) {
           setIdType={setIdType}
           idNumber={idNumber}
           setIdNumber={setIdNumber}
+          idPhotoUri={idPhotoUri}
+          setIdPhotoUri={setIdPhotoUri}
+          selfieWithIdPhotoUri={selfieWithIdPhotoUri}
+          setSelfieWithIdPhotoUri={setSelfieWithIdPhotoUri}
+          requireIdPhoto={requireIdUpload}
         />
         <TextInput
           style={styles.input}

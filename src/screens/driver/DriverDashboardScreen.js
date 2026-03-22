@@ -11,12 +11,14 @@ import {
   Modal,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
 import { useTheme } from '../../context/ThemeContext';
 import {
   subscribeToBiddingRides,
   addBid,
   updateDriverOnlineStatus,
+  updateDriverLocation,
   subscribeToBids,
   subscribeToDriverActiveRide,
 } from '../../services/rideService';
@@ -70,6 +72,33 @@ export default function DriverDashboardScreen({ navigation }) {
     if (!isFirebaseReady || !userProfile?.id) return;
     updateDriverOnlineStatus(userProfile.id, isOnline).catch(() => {});
   }, [isOnline, userProfile?.id]);
+
+  // Publish driver location to RTDB while online (for getNearbyDrivers / rider map)
+  useEffect(() => {
+    if (!isFirebaseReady || !userProfile?.id || !isOnline || activeRide) return;
+    let cancelled = false;
+    let intervalId = null;
+    const publish = async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted' || cancelled) return;
+        const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+        if (cancelled) return;
+        updateDriverLocation(userProfile.id, {
+          latitude: pos.coords.latitude,
+          longitude: pos.coords.longitude,
+        });
+      } catch {
+        /* ignore */
+      }
+    };
+    publish();
+    intervalId = setInterval(publish, 120000);
+    return () => {
+      cancelled = true;
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [isOnline, userProfile?.id, activeRide]);
 
   // Reset activity on new rides or accepting bid
   useEffect(() => {

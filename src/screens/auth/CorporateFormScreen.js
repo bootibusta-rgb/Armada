@@ -9,15 +9,16 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db, isFirebaseReady } from '../../config/firebase';
+import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
+import { updateUserProfile } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import IdVerificationSection from '../../components/IdVerificationSection';
+import { uploadUserIdDocument, uploadUserSelfieWithId } from '../../services/identityVerificationService';
 
 export default function CorporateFormScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { setUserProfile, loginDemo } = useAuth();
+  const { user, setUserProfile, loginDemo } = useAuth();
   const styles = createStyles(theme);
   const { demo } = route.params || {};
   const [companyName, setCompanyName] = useState('');
@@ -25,7 +26,10 @@ export default function CorporateFormScreen({ route, navigation }) {
   const [email, setEmail] = useState('');
   const [idType, setIdType] = useState('');
   const [idNumber, setIdNumber] = useState('');
+  const [idPhotoUri, setIdPhotoUri] = useState(null);
+  const [selfieWithIdPhotoUri, setSelfieWithIdPhotoUri] = useState(null);
   const [loading, setLoading] = useState(false);
+  const requireIdUpload = !demo && isFirebaseReady;
 
   const handleSubmit = async () => {
     if (!companyName.trim()) {
@@ -38,6 +42,14 @@ export default function CorporateFormScreen({ route, navigation }) {
     }
     if (!idType || !idNumber.trim()) {
       Alert.alert('Error', 'Select ID type and enter contact person ID number');
+      return;
+    }
+    if (requireIdUpload && !idPhotoUri) {
+      Alert.alert('Error', 'Upload a clear photo of the contact person’s selected ID');
+      return;
+    }
+    if (requireIdUpload && !selfieWithIdPhotoUri) {
+      Alert.alert('Error', 'Take a selfie of the contact person holding their ID next to their face');
       return;
     }
     setLoading(true);
@@ -54,22 +66,22 @@ export default function CorporateFormScreen({ route, navigation }) {
         });
         return;
       }
-      const uid = auth?.currentUser?.uid;
+      const uid = user?.uid;
       if (!uid) throw new Error('Not authenticated');
-      await setDoc(
-        doc(db, 'users', uid),
-        {
-          role: 'corporate',
-          name: companyName.trim(),
-          contactPerson: contactPerson.trim(),
-          email: email.trim() || null,
-          idType,
-          idNumber: idNumber.trim(),
-          idVerified: true,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      const idDocumentUrl = await uploadUserIdDocument(uid, idType, idPhotoUri);
+      const idSelfieWithIdUrl = await uploadUserSelfieWithId(uid, selfieWithIdPhotoUri);
+      await updateUserProfile(uid, {
+        role: 'corporate',
+        name: companyName.trim(),
+        contactPerson: contactPerson.trim(),
+        email: email.trim() || null,
+        idType,
+        idNumber: idNumber.trim(),
+        idDocumentUrl,
+        idSelfieWithIdUrl,
+        idDocumentUploadedAt: new Date().toISOString(),
+        idVerified: true,
+      });
       setUserProfile({
         id: uid,
         role: 'corporate',
@@ -78,6 +90,8 @@ export default function CorporateFormScreen({ route, navigation }) {
         email: email.trim(),
         idType,
         idNumber: idNumber.trim(),
+        idDocumentUrl,
+        idSelfieWithIdUrl,
       });
     } catch (e) {
       Alert.alert('Error', e.message || 'Failed to save');
@@ -116,6 +130,11 @@ export default function CorporateFormScreen({ route, navigation }) {
           setIdType={setIdType}
           idNumber={idNumber}
           setIdNumber={setIdNumber}
+          idPhotoUri={idPhotoUri}
+          setIdPhotoUri={setIdPhotoUri}
+          selfieWithIdPhotoUri={selfieWithIdPhotoUri}
+          setSelfieWithIdPhotoUri={setSelfieWithIdPhotoUri}
+          requireIdPhoto={requireIdUpload}
         />
         <TextInput
           style={styles.input}

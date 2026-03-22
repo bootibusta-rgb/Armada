@@ -9,15 +9,16 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { doc, setDoc } from 'firebase/firestore';
-import { auth, db, isFirebaseReady } from '../../config/firebase';
+import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
+import { updateUserProfile, getUserProfile } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import IdVerificationSection from '../../components/IdVerificationSection';
+import { uploadUserIdDocument, uploadUserSelfieWithId } from '../../services/identityVerificationService';
 
 export default function RiderFormScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { setUserProfile, loginDemo } = useAuth();
+  const { user, setUserProfile, loginDemo } = useAuth();
   const styles = createStyles(theme);
   const { role, demo } = route.params || {};
   const [name, setName] = useState('');
@@ -25,7 +26,10 @@ export default function RiderFormScreen({ route, navigation }) {
   const [phone, setPhone] = useState('');
   const [idType, setIdType] = useState('');
   const [idNumber, setIdNumber] = useState('');
+  const [idPhotoUri, setIdPhotoUri] = useState(null);
+  const [selfieWithIdPhotoUri, setSelfieWithIdPhotoUri] = useState(null);
   const [loading, setLoading] = useState(false);
+  const requireIdUpload = !demo && isFirebaseReady;
 
   const handleSubmit = async () => {
     if (!name.trim()) {
@@ -34,6 +38,14 @@ export default function RiderFormScreen({ route, navigation }) {
     }
     if (!idType || !idNumber.trim()) {
       Alert.alert('Error', 'Select ID type and enter your ID number');
+      return;
+    }
+    if (requireIdUpload && !idPhotoUri) {
+      Alert.alert('Error', 'Upload a clear photo of your selected ID (passport, license, or national ID)');
+      return;
+    }
+    if (requireIdUpload && !selfieWithIdPhotoUri) {
+      Alert.alert('Error', 'Take a selfie holding your ID next to your face');
       return;
     }
     setLoading(true);
@@ -51,24 +63,41 @@ export default function RiderFormScreen({ route, navigation }) {
         });
         return;
       }
-      const uid = auth?.currentUser?.uid;
+      const uid = user?.uid;
       if (!uid) throw new Error('Not authenticated');
-      await setDoc(
-        doc(db, 'users', uid),
-        {
-          role: 'rider',
-          name: name.trim(),
-          email: email.trim() || null,
-          phone: phone.trim() || null,
-          idType,
-          idNumber: idNumber.trim(),
-          idVerified: true,
-          irieCoins: 150,
-          updatedAt: new Date().toISOString(),
-        },
-        { merge: true }
-      );
-      setUserProfile({ id: uid, role: 'rider', name: name.trim(), email: email.trim(), phone: phone.trim(), idType, idNumber: idNumber.trim(), irieCoins: 150 });
+      const existing = await getUserProfile(uid);
+      const roles = [...(existing?.roles || (existing?.role ? [existing.role] : []))];
+      if (!roles.includes('rider')) roles.push('rider');
+      const idDocumentUrl = await uploadUserIdDocument(uid, idType, idPhotoUri);
+      const idSelfieWithIdUrl = await uploadUserSelfieWithId(uid, selfieWithIdPhotoUri);
+      await updateUserProfile(uid, {
+        role: 'rider',
+        roles,
+        name: name.trim(),
+        email: email.trim() || null,
+        phone: phone.trim() || null,
+        idType,
+        idNumber: idNumber.trim(),
+        idDocumentUrl,
+        idSelfieWithIdUrl,
+        idDocumentUploadedAt: new Date().toISOString(),
+        idVerified: true,
+        irieCoins: existing?.irieCoins ?? 150,
+      });
+      setUserProfile({
+        id: uid,
+        ...existing,
+        role: 'rider',
+        roles,
+        name: name.trim(),
+        email: email.trim(),
+        phone: phone.trim(),
+        idType,
+        idNumber: idNumber.trim(),
+        idDocumentUrl,
+        idSelfieWithIdUrl,
+        irieCoins: existing?.irieCoins ?? 150,
+      });
     } catch (e) {
       Alert.alert('Error', e.message || 'Failed to save');
     } finally {
@@ -116,6 +145,11 @@ export default function RiderFormScreen({ route, navigation }) {
           setIdType={setIdType}
           idNumber={idNumber}
           setIdNumber={setIdNumber}
+          idPhotoUri={idPhotoUri}
+          setIdPhotoUri={setIdPhotoUri}
+          selfieWithIdPhotoUri={selfieWithIdPhotoUri}
+          setSelfieWithIdPhotoUri={setSelfieWithIdPhotoUri}
+          requireIdPhoto={requireIdUpload}
         />
         <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}

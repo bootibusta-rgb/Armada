@@ -83,7 +83,7 @@ export function subscribeToContactOnline(uid, callback) {
  * On native, use RNFB Firestore so auth matches (avoids permission errors before JS SDK sync)
  */
 export async function updatePresence(userId) {
-  if (!userId) return;
+  if (!userId || String(userId).startsWith('demo-')) return;
   try {
     if (useNativeAuth) {
       const rnf = require('@react-native-firebase/firestore');

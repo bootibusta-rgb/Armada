@@ -20,7 +20,7 @@ import NotificationsButton from '../components/NotificationsButton';
 
 const Stack = createNativeStackNavigator();
 
-export default function MainNavigator({ userProfile }) {
+export default function MainNavigator({ userProfile, demoMode }) {
   const { theme } = useTheme();
   const role = userProfile?.role || 'rider';
   const Tabs = role === 'corporate' ? CorporateTabs
@@ -36,8 +36,8 @@ export default function MainNavigator({ userProfile }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <PresenceUpdater userId={userProfile?.id} />
-      <EmergencyCallReceiver />
+      {!demoMode && <PresenceUpdater userId={userProfile?.id} />}
+      {!demoMode && <EmergencyCallReceiver />}
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Main" component={Tabs} />
         <Stack.Screen name="DriverActiveRide" component={DriverActiveRideScreen} options={{ headerShown: true, title: 'Active Ride', ...headerOptions }} />

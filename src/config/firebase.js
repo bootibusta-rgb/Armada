@@ -1,9 +1,11 @@
+import { Platform } from 'react-native';
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
+import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
 
 // Config from env (EXPO_PUBLIC_*). Copy .env.example to .env and fill values.
 const firebaseConfig = {
@@ -31,13 +33,23 @@ let storage = null;
 if (isConfigValid) {
   try {
     app = initializeApp(firebaseConfig);
-    auth = getAuth(app);
+    if (Platform.OS !== 'web') {
+      auth = initializeAuth(app, {
+        persistence: getReactNativePersistence(ReactNativeAsyncStorage),
+      });
+    } else {
+      auth = getAuth(app);
+    }
     db = getFirestore(app);
     realtimeDb = getDatabase(app);
     functions = getFunctions(app);
     storage = getStorage(app);
   } catch (e) {
-    console.warn('Firebase init failed:', e.message);
+    if (e?.code === 'auth/already-initialized') {
+      auth = getAuth(app);
+    } else {
+      console.warn('Firebase init failed:', e?.message);
+    }
   }
 }
 

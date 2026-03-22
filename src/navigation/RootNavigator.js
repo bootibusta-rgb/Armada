@@ -7,7 +7,7 @@ import MainNavigator from './MainNavigator';
 
 export default function RootNavigator() {
   const { theme } = useTheme();
-  const { user, userProfile, loading } = useAuth();
+  const { user, userProfile, loading, demoMode } = useAuth();
 
   if (loading) {
     return (
@@ -21,7 +21,7 @@ export default function RootNavigator() {
     return <AuthNavigator />;
   }
 
-  return <MainNavigator userProfile={userProfile} />;
+  return <MainNavigator userProfile={userProfile} demoMode={demoMode} />;
 }
 
 const styles = StyleSheet.create({

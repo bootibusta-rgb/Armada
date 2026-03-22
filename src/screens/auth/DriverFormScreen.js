@@ -55,7 +55,7 @@ export default function DriverFormScreen({ route, navigation }) {
       return;
     }
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [4, 3],
       quality: 0.8,
@@ -329,7 +329,7 @@ export default function DriverFormScreen({ route, navigation }) {
           <TouchableOpacity style={styles.docPhotoBtn} onPress={async () => {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') return;
-            const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+            const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.8 });
             if (!r.canceled) setRegistrationPhotoUri(r.assets[0].uri);
           }}>
             {registrationPhotoUri ? <Image source={{ uri: registrationPhotoUri }} style={styles.docPhotoPreview} /> : <View style={styles.docPhotoPlaceholder}><Ionicons name="document-text" size={24} color={theme.colors.textSecondary} /><Text style={styles.docPhotoText}>Registration</Text></View>}
@@ -337,7 +337,7 @@ export default function DriverFormScreen({ route, navigation }) {
           <TouchableOpacity style={styles.docPhotoBtn} onPress={async () => {
             const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (status !== 'granted') return;
-            const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ImagePicker.MediaTypeOptions.Images, allowsEditing: true, aspect: [4, 3], quality: 0.8 });
+            const r = await ImagePicker.launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [4, 3], quality: 0.8 });
             if (!r.canceled) setFitnessPhotoUri(r.assets[0].uri);
           }}>
             {fitnessPhotoUri ? <Image source={{ uri: fitnessPhotoUri }} style={styles.docPhotoPreview} /> : <View style={styles.docPhotoPlaceholder}><Ionicons name="document-text" size={24} color={theme.colors.textSecondary} /><Text style={styles.docPhotoText}>Fitness</Text></View>}

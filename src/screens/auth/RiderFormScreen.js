@@ -149,7 +149,7 @@ export default function RiderFormScreen({ route, navigation }) {
           setIdPhotoUri={setIdPhotoUri}
           selfieWithIdPhotoUri={selfieWithIdPhotoUri}
           setSelfieWithIdPhotoUri={setSelfieWithIdPhotoUri}
-          requireIdPhoto={requireIdUpload}
+          requireIdPhoto={true}
         />
         <TouchableOpacity
         style={[styles.button, loading && styles.buttonDisabled]}

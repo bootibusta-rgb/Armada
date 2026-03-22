@@ -1,15 +1,32 @@
 # Dependencies
 node_modules/
 
-# Environment (never commit secrets)
+# ========== NEVER COMMIT SECRETS ==========
+# Environment
 .env
 .env.local
 .env.*.local
+.env.production
+.env.development
+*.env
 
-# Store submission keys (never commit)
+# Firebase / Google
 google-service-account.json
 google-services.json
-android/app/google-services.json
+**/google-services.json
+GoogleService-Info.plist
+**/GoogleService-Info.plist
+service-account*.json
+credentials.json
+
+# Keys & certs
+*.pem
+*.p12
+*.jks
+*.keystore
+*.key
+debug.keystore
+release.keystore
 
 # Build
 dist/

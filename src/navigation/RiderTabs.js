@@ -42,8 +42,10 @@ function RiderStack() {
 
 export default function RiderTabs() {
   const { theme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, userProfile, switchRole } = useAuth();
   const rootNav = useNavigation();
+  const roles = userProfile?.roles || (userProfile?.role ? [userProfile.role] : []);
+  const canSwitchToDriver = roles.includes('driver');
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -111,9 +113,19 @@ export default function RiderTabs() {
         headerTintColor: theme.colors.onPrimary,
         headerTitle: route.name === 'Home' ? () => <AdminGate /> : undefined,
         headerLeft: () => (
-          <TouchableOpacity onPress={() => rootNav.navigate('Settings')} style={{ marginLeft: 16 }}>
-            <Ionicons name="settings-outline" size={24} color={theme.colors.white} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 16, gap: 12 }}>
+            {canSwitchToDriver && (
+              <TouchableOpacity
+                onPress={() => switchRole('driver')}
+                style={{ backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}
+              >
+                <Text style={{ color: theme.colors.white, fontSize: 13, fontWeight: '600' }}>Switch to Driver</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => rootNav.navigate('Settings')}>
+              <Ionicons name="settings-outline" size={24} color={theme.colors.white} />
+            </TouchableOpacity>
+          </View>
         ),
         headerRight: () => (
           <TouchableOpacity onPress={logout} style={{ marginRight: 16 }}>

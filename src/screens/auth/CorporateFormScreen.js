@@ -134,7 +134,7 @@ export default function CorporateFormScreen({ route, navigation }) {
           setIdPhotoUri={setIdPhotoUri}
           selfieWithIdPhotoUri={selfieWithIdPhotoUri}
           setSelfieWithIdPhotoUri={setSelfieWithIdPhotoUri}
-          requireIdPhoto={requireIdUpload}
+          requireIdPhoto={true}
         />
         <TextInput
           style={styles.input}

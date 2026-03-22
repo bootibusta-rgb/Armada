@@ -246,7 +246,7 @@ export default function DriverFormScreen({ route, navigation }) {
           setIdPhotoUri={setIdPhotoUri}
           selfieWithIdPhotoUri={selfieWithIdPhotoUri}
           setSelfieWithIdPhotoUri={setSelfieWithIdPhotoUri}
-          requireIdPhoto={requireIdUpload}
+          requireIdPhoto={true}
           driversLicenseOnly
         />
         <Text style={styles.sectionTitle}>Vehicle (required)</Text>

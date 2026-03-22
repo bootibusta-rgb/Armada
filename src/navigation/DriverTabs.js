@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { TouchableOpacity, Text } from 'react-native';
+import { TouchableOpacity, Text, View } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../context/AuthContext';
@@ -18,8 +18,10 @@ const Tab = createBottomTabNavigator();
 
 export default function DriverTabs() {
   const { theme } = useTheme();
-  const { logout } = useAuth();
+  const { logout, userProfile, switchRole } = useAuth();
   const rootNav = useNavigation();
+  const roles = userProfile?.roles || (userProfile?.role ? [userProfile.role] : []);
+  const canSwitchToRider = roles.includes('rider');
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -42,9 +44,19 @@ export default function DriverTabs() {
         headerTintColor: theme.colors.onPrimary,
         headerTitle: route.name === 'Dashboard' ? () => <AdminGate /> : undefined,
         headerLeft: () => (
-          <TouchableOpacity onPress={() => rootNav.navigate('Settings')} style={{ marginLeft: 16 }}>
-            <Ionicons name="settings-outline" size={24} color={theme.colors.white} />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 16, gap: 12 }}>
+            {canSwitchToRider && (
+              <TouchableOpacity
+                onPress={() => switchRole('rider')}
+                style={{ backgroundColor: 'rgba(255,255,255,0.25)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 8 }}
+              >
+                <Text style={{ color: theme.colors.white, fontSize: 13, fontWeight: '600' }}>Switch to Rider</Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={() => rootNav.navigate('Settings')}>
+              <Ionicons name="settings-outline" size={24} color={theme.colors.white} />
+            </TouchableOpacity>
+          </View>
         ),
         headerRight: () => (
           <TouchableOpacity onPress={logout} style={{ marginRight: 16 }}>

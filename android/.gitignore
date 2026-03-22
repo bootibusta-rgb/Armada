@@ -14,5 +14,11 @@ local.properties
 
 # Bundle artifacts
 *.jsbundle
+
+# NEVER COMMIT - secrets
 google-services.json
+**/google-services.json
 *.env
+*.keystore
+*.jks
+*.p12

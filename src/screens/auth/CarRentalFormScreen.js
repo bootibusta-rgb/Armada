@@ -441,7 +441,7 @@ export default function CarRentalFormScreen({ route, navigation }) {
           setIdPhotoUri={setIdPhotoUri}
           selfieWithIdPhotoUri={selfieWithIdPhotoUri}
           setSelfieWithIdPhotoUri={setSelfieWithIdPhotoUri}
-          requireIdPhoto={requireIdUpload}
+          requireIdPhoto={true}
         />
 
         <TextInput

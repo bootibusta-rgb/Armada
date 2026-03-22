@@ -15,7 +15,7 @@ Your Firebase API key was committed in `google-services.json`. Follow these step
 
 ### Step 2: Locate the leaked key
 
-1. Under **API keys**, find the key whose value starts with `AIzaSyAeepahy7o9s2B8hTIcvCN7mddNbT5lHz8`
+1. Under **API keys**, find the key that was exposed (check your GitGuardian/GitHub alert)
 2. Click the **key name** (not the copy icon) to open its details page
 
 ### Step 3: Create a new key (two ways)
@@ -47,10 +47,7 @@ Your Firebase API key was committed in `google-services.json`. Follow these step
 ### Step 4: Update your local google-services.json
 
 1. Open `h:\Armada\google-services.json` in a text editor
-2. Find:
-   ```json
-   "current_key": "AIzaSyAeepahy7o9s2B8hTIcvCN7mddNbT5lHz8"
-   ```
+2. Find the `"current_key"` field in the `api_key` array
 3. Replace the value with your **new** key string
 4. Save the file
 5. Copy the file to `h:\Armada\android\app\google-services.json` (or edit that file and make the same change)
@@ -58,7 +55,7 @@ Your Firebase API key was committed in `google-services.json`. Follow these step
 ### Step 5: Delete the old (compromised) key
 
 1. Go back to **Credentials**: [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials)
-2. Under **API keys**, find the **old** key (`AIzaSyAeepahy7o9s2B8hTIcvCN7mddNbT5lHz8`)
+2. Under **API keys**, find the **old** (compromised) key
 3. Click the key name to open it
 4. Click **Delete** (or the trash icon) at the top
 5. Confirm deletion

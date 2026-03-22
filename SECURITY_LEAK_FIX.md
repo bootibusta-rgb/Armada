@@ -1,37 +1,30 @@
-# Fix: Leaked Google API Key
+# Fix: Leaked Google API Keys
 
-Your Google Maps API key was committed to the repo. Follow these steps to fix it.
+Google API keys were committed (AndroidManifest, google-services.json). Follow these steps.
 
-## 1. Revoke the leaked key (do this first)
+## 1. Revoke the leaked keys (do this first)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Select project **My First Project** (or the project that owns the key)
+2. Select project **Armada** (armada-25d8a)
 3. **APIs & Services** → **Credentials**
-4. Find the key that starts with `AIzaSy...` (the one that was in AndroidManifest)
-5. Click it → **Delete** or **Regenerate** (regenerate is safer if you need continuity)
+4. Find and **delete** any keys that were exposed (check GitGuardian/GitHub alert)
+5. Create new keys as needed (see below)
 
-## 2. Create a new API key
+## 2. Google Maps API key (was in AndroidManifest)
 
-1. **Credentials** → **Create credentials** → **API key**
-2. Copy the new key
-3. **Restrict the key** (important):
-   - **Application restrictions**: Android apps
-   - Add your package: `com.armada.app`
-   - Add your debug SHA-1 (get it: `cd android && ./gradlew signingReport`)
-   - **API restrictions**: Restrict to **Maps SDK for Android** (and any other APIs you use)
+The manifest now reads from `android/local.properties` (gitignored).
 
-## 3. Add the new key locally (never commit)
+1. **Create** a new Maps API key: Credentials → Create credentials → API key
+2. **Restrict** it: Android apps, package `com.armada.app`, SHA-1 from `cd android && ./gradlew signingReport`
+3. **Add locally** – create or edit `android/local.properties`:
+   ```
+   GOOGLE_MAPS_API_KEY=your_new_maps_key_here
+   ```
+4. Copy `android/local.properties.example` for the format
 
-**Option A – local.properties (recommended for Android):**
+## 3. Firebase keys (google-services.json)
 
-1. Open or create `android/local.properties`
-2. Add: `GOOGLE_MAPS_API_KEY=your_new_key_here`
-3. `local.properties` is gitignored
-
-**Option B – .env:**
-
-1. Add to `.env`: `EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY=your_new_key_here`
-2. `.env` is gitignored
+See `GOOGLE_SERVICES_LEAK_FIX.md`. Never commit `google-services.json`.
 
 ## 4. Rebuild
 
@@ -39,11 +32,7 @@ Your Google Maps API key was committed to the repo. Follow these steps to fix it
 npx expo run:android
 ```
 
-## 5. Dismiss the GitHub alert
+## 5. Dismiss alerts
 
 1. GitHub → **Security** → **Secret scanning alerts**
-2. Open the alert → **Mark as resolved** (after you’ve revoked the key)
-
----
-
-**Note:** The leaked key has been removed from the codebase. The manifest now reads the key from `local.properties` or the `EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY` env var at build time.
+2. Mark as resolved after revoking keys

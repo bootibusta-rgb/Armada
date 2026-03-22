@@ -1,14 +1,14 @@
 {
   "project_info": {
-    "project_number": "1058271509496",
-    "project_id": "armada-25d8a",
-    "storage_bucket": "armada-25d8a.firebasestorage.app",
-    "firebase_url": "https://armada-25d8a-default-rtdb.firebaseio.com"
+    "project_number": "YOUR_PROJECT_NUMBER",
+    "project_id": "YOUR_PROJECT_ID",
+    "storage_bucket": "YOUR_PROJECT_ID.firebasestorage.app",
+    "firebase_url": "https://YOUR_PROJECT_ID-default-rtdb.firebaseio.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1058271509496:android:8f898d01fdc13cd51cf40d",
+        "mobilesdk_app_id": "1:YOUR_PROJECT_NUMBER:android:YOUR_APP_ID",
         "android_client_info": {
           "package_name": "com.armada.app"
         }
@@ -16,7 +16,7 @@
       "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyAeepahy7o9s2B8hTIcvCN7mddNbT5lHz8"
+          "current_key": "YOUR_FIREBASE_API_KEY"
         }
       ],
       "services": {

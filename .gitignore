@@ -8,6 +8,8 @@ node_modules/
 
 # Store submission keys (never commit)
 google-service-account.json
+google-services.json
+android/app/google-services.json
 
 # Build
 dist/

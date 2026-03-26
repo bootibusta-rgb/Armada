@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
-import { updateUserProfile } from '../../services/authService';
+import { updateUserProfile, getCurrentAuthUid } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import IdVerificationSection from '../../components/IdVerificationSection';
 import { uploadUserIdDocument, uploadUserSelfieWithId } from '../../services/identityVerificationService';
@@ -81,7 +81,7 @@ export default function VendorFormScreen({ route, navigation }) {
         });
         return;
       }
-      const uid = user?.uid;
+      const uid = getCurrentAuthUid(user);
       if (!uid) throw new Error('Not authenticated');
       const idDocumentUrl = await uploadUserIdDocument(uid, idType, idPhotoUri);
       const idSelfieWithIdUrl = await uploadUserSelfieWithId(uid, selfieWithIdPhotoUri);

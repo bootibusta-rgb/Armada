@@ -97,6 +97,23 @@ export const getUserProfile = async (uid) => {
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 };
 
+/**
+ * Resolves Firebase UID when React context lags right after OTP (native) or on web.
+ */
+export function getCurrentAuthUid(contextUser) {
+  if (contextUser?.uid) return contextUser.uid;
+  if (useNativeAuth && rnAuth) {
+    try {
+      const uid = rnAuth().currentUser?.uid;
+      if (uid) return uid;
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  if (isFirebaseReady && auth?.currentUser?.uid) return auth.currentUser.uid;
+  return null;
+}
+
 export const signOut = async () => {
   if (useNativeAuth && rnAuth) {
     await rnAuth().signOut();

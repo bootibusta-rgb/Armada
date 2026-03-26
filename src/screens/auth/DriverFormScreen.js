@@ -15,7 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
-import { updateUserProfile, getUserProfile } from '../../services/authService';
+import { updateUserProfile, getUserProfile, getCurrentAuthUid } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import IdVerificationSection from '../../components/IdVerificationSection';
 import { addVehicle, uploadVehiclePhoto, uploadDocumentPhoto } from '../../services/vehicleService';
@@ -112,7 +112,7 @@ export default function DriverFormScreen({ route, navigation }) {
         });
         return;
       }
-      const uid = user?.uid;
+      const uid = getCurrentAuthUid(user);
       if (!uid) throw new Error('Not authenticated');
       const existing = await getUserProfile(uid);
       const roles = [...(existing?.roles || (existing?.role ? [existing.role] : []))];

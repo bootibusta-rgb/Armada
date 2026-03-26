@@ -15,7 +15,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
-import { updateUserProfile } from '../../services/authService';
+import { updateUserProfile, getCurrentAuthUid } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import {
   payCarRentalListingWithPayPal,
@@ -250,7 +250,7 @@ export default function CarRentalFormScreen({ route, navigation }) {
         return;
       }
 
-      const uid = user?.uid;
+      const uid = getCurrentAuthUid(user);
       if (!uid) throw new Error('Not authenticated');
 
       const idDocumentUrl = await uploadUserIdDocument(uid, idType, idPhotoUri);

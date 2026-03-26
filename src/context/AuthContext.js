@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { httpsCallable } from 'firebase/functions';
 import { auth, functions, isFirebaseReady } from '../config/firebase';
@@ -14,34 +14,67 @@ export function AuthProvider({ children }) {
   const [userProfile, setUserProfile] = useState(null);
   const [demoMode, setDemoMode] = useState(false);
   const [loading, setLoading] = useState(true);
+  /** Keeps demo safe from in-flight native auth callbacks overwriting profile after loginDemo. */
+  const demoModeRef = useRef(false);
+
+  useEffect(() => {
+    demoModeRef.current = demoMode;
+  }, [demoMode]);
 
   useEffect(() => {
     if (useNativeAuth) {
       const { getAuth, onAuthStateChanged } = require('@react-native-firebase/auth');
       const rnAuth = getAuth();
       const unsubscribe = onAuthStateChanged(rnAuth, async (firebaseUser) => {
-        if (demoMode) return;
+        if (demoModeRef.current) {
+          setLoading(false);
+          return;
+        }
         setUser(firebaseUser);
         if (firebaseUser) {
           try {
             // Sync RNFB auth to Firebase JS SDK so Firestore has permissions
             if (isFirebaseReady && functions) {
               const idToken = await firebaseUser.getIdToken();
+              if (demoModeRef.current) {
+                setLoading(false);
+                return;
+              }
               const getCustomToken = httpsCallable(functions, 'getCustomToken');
               const { data } = await getCustomToken({ idToken });
+              if (demoModeRef.current) {
+                setLoading(false);
+                return;
+              }
               if (data?.customToken) {
                 await signInWithCustomToken(auth, data.customToken);
               }
             }
+            if (demoModeRef.current) {
+              setLoading(false);
+              return;
+            }
             const profile = await getUserProfile(firebaseUser.uid);
+            if (demoModeRef.current) {
+              setLoading(false);
+              return;
+            }
             setUserProfile(profile);
             const token = await registerForPushNotificationsAsync();
+            if (demoModeRef.current) {
+              setLoading(false);
+              return;
+            }
             if (token) savePushToken(firebaseUser.uid, token);
           } catch (e) {
-            setUserProfile(null);
+            if (!demoModeRef.current) {
+              setUserProfile(null);
+            }
           }
         } else {
-          setUserProfile(null);
+          if (!demoModeRef.current) {
+            setUserProfile(null);
+          }
         }
         setLoading(false);
       });
@@ -52,32 +85,49 @@ export function AuthProvider({ children }) {
       return;
     }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (demoMode) return;
+      if (demoModeRef.current) {
+        setLoading(false);
+        return;
+      }
       setUser(firebaseUser);
       if (firebaseUser) {
         try {
           const profile = await getUserProfile(firebaseUser.uid);
+          if (demoModeRef.current) {
+            setLoading(false);
+            return;
+          }
           setUserProfile(profile);
           const token = await registerForPushNotificationsAsync();
+          if (demoModeRef.current) {
+            setLoading(false);
+            return;
+          }
           if (token) savePushToken(firebaseUser.uid, token);
         } catch (e) {
-          setUserProfile(null);
+          if (!demoModeRef.current) {
+            setUserProfile(null);
+          }
         }
       } else {
-        setUserProfile(null);
+        if (!demoModeRef.current) {
+          setUserProfile(null);
+        }
       }
       setLoading(false);
     });
     return unsubscribe;
-  }, [demoMode]);
+  }, []);
 
   const loginDemo = (profile) => {
+    demoModeRef.current = true;
     setDemoMode(true);
     setUserProfile(profile);
     setLoading(false);
   };
 
   const logout = async () => {
+    demoModeRef.current = false;
     setDemoMode(false);
     setUserProfile(null);
     setUser(null);

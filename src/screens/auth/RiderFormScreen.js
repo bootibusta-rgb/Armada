@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
-import { updateUserProfile, getUserProfile } from '../../services/authService';
+import { updateUserProfile, getUserProfile, getCurrentAuthUid } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import IdVerificationSection from '../../components/IdVerificationSection';
 import { uploadUserIdDocument, uploadUserSelfieWithId } from '../../services/identityVerificationService';
@@ -63,7 +63,7 @@ export default function RiderFormScreen({ route, navigation }) {
         });
         return;
       }
-      const uid = user?.uid;
+      const uid = getCurrentAuthUid(user);
       if (!uid) throw new Error('Not authenticated');
       const existing = await getUserProfile(uid);
       const roles = [...(existing?.roles || (existing?.role ? [existing.role] : []))];

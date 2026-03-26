@@ -80,9 +80,10 @@ export function withSectionGuide(WrappedComponent, sectionId) {
 
 const styles = StyleSheet.create({
   wrap: { flex: 1 },
+  // Left side: avoids stacking under MainNavigator's notifications FAB (right, ~bottom 100).
   fab: {
     position: 'absolute',
-    right: 16,
+    left: 16,
     bottom: 88,
     width: 48,
     height: 48,
@@ -90,7 +91,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderBottomWidth: 3,
-    elevation: 6,
+    elevation: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,

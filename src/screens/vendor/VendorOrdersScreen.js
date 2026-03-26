@@ -14,8 +14,9 @@ import { subscribeToFoodOrdersByVendor, updateFoodOrderStatus } from '../../serv
 import { subscribeToRide, subscribeToDriverLocation } from '../../services/rideService';
 import { haversineKm } from '../../utils/haversine';
 import { isFirebaseReady } from '../../config/firebase';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function VendorOrdersScreen() {
+function VendorOrdersScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -150,6 +151,8 @@ export default function VendorOrdersScreen() {
     </View>
   );
 }
+
+export default withSectionGuide(VendorOrdersScreen, 'vendor_orders');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, padding: 24 },

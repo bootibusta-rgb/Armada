@@ -3,8 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView } from 'rea
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function IrieCoinsScreen() {
+function IrieCoinsScreen() {
   const { theme } = useTheme();
   const { userProfile, refreshUserProfile } = useAuth();
   const coins = userProfile?.irieCoins ?? 150;
@@ -50,6 +51,8 @@ export default function IrieCoinsScreen() {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(IrieCoinsScreen, 'rider_coins');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

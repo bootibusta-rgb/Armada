@@ -16,8 +16,9 @@ import {
   payVendorSubscriptionWithPayPal,
   payVendorSubscriptionFallback,
 } from '../../services/vendorSubscriptionPayPalService';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function VendorSubscriptionScreen() {
+function VendorSubscriptionScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { user, userProfile, setUserProfile, refreshUserProfile } = useAuth();
@@ -182,6 +183,8 @@ export default function VendorSubscriptionScreen() {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(VendorSubscriptionScreen, 'vendor_premium');
 
 const createStyles = (theme) =>
   StyleSheet.create({

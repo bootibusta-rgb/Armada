@@ -6,6 +6,7 @@ import { getCorporateStats } from '../../services/corporateService';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { isFirebaseReady } from '../../config/firebase';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
 const ACTION_BUTTONS = [
   { key: 'Book', label: 'Book ride', icon: 'car', color: '#7C3AED', route: 'Book' },
@@ -15,7 +16,7 @@ const ACTION_BUTTONS = [
   { key: 'Invoice', label: 'Invoice', icon: 'receipt', color: '#0EA5E9', route: 'Invoice' },
 ];
 
-export default function CorporateDashboardScreen() {
+function CorporateDashboardScreen() {
   const { theme } = useTheme();
   const { userProfile } = useAuth();
   const [stats, setStats] = useState(null);
@@ -168,6 +169,8 @@ export default function CorporateDashboardScreen() {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(CorporateDashboardScreen, 'corporate_dashboard');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

@@ -7,8 +7,9 @@ import { isSentryEnabled } from '../../config/sentry';
 import { isProductionApp } from '../../config/appEnv';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function SettingsScreen({ navigation }) {
+function SettingsScreen({ navigation }) {
   const { theme, mode, setThemeMode, hasProfile } = useTheme();
   const { userProfile, switchRole, refreshUserProfile } = useAuth();
   const roles = userProfile?.roles || (userProfile?.role ? [userProfile.role] : []);
@@ -128,6 +129,8 @@ export default function SettingsScreen({ navigation }) {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(SettingsScreen, 'settings');
 
 const styles = StyleSheet.create({
   container: { flex: 1 },

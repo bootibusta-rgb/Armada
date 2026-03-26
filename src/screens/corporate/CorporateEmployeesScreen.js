@@ -14,8 +14,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { getEmployees, saveEmployees } from '../../services/corporateService';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function CorporateEmployeesScreen() {
+function CorporateEmployeesScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -161,6 +162,8 @@ export default function CorporateEmployeesScreen() {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(CorporateEmployeesScreen, 'corporate_employees');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

@@ -3,8 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { processGoldTierPayment } from '../../services/paymentService';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function GoldTierScreen() {
+function GoldTierScreen() {
   const { theme } = useTheme();
   const [isGold, setIsGold] = useState(false);
   const styles = createStyles(theme);
@@ -48,6 +49,8 @@ export default function GoldTierScreen() {
     </View>
   );
 }
+
+export default withSectionGuide(GoldTierScreen, 'driver_gold');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, padding: 24 },

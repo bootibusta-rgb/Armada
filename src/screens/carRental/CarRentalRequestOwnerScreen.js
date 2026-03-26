@@ -23,6 +23,7 @@ import {
 import { sendRentalChatMessage, ensureRentalChatParticipants } from '../../services/chatService';
 import { updateUserProfile } from '../../services/authService';
 import { openDial, pickTextRider } from '../../utils/rentalComm';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
 function tomorrowEndISO() {
   const t = new Date();
@@ -31,7 +32,7 @@ function tomorrowEndISO() {
   return t.toISOString();
 }
 
-export default function CarRentalRequestOwnerScreen({ route, navigation }) {
+function CarRentalRequestOwnerScreen({ route, navigation }) {
   const { requestId: initialRequestId } = route.params || {};
   const { theme } = useTheme();
   const styles = useMemo(() => createStyles(theme), [theme]);
@@ -312,6 +313,8 @@ export default function CarRentalRequestOwnerScreen({ route, navigation }) {
     </SafeAreaView>
   );
 }
+
+export default withSectionGuide(CarRentalRequestOwnerScreen, 'car_rental_request');
 
 const createStyles = (theme) =>
   StyleSheet.create({

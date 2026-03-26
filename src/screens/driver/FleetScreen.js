@@ -25,6 +25,7 @@ import {
 import { scheduleDocExpiryNotifications, getExpiringDocsBanner } from '../../services/docExpiryNotificationService';
 import { isFirebaseReady } from '../../config/firebase';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
 function isExpired(dateStr) {
   if (!dateStr) return false;
@@ -32,7 +33,7 @@ function isExpired(dateStr) {
   return !isNaN(d.getTime()) && d < new Date();
 }
 
-export default function FleetScreen() {
+function FleetScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -314,6 +315,8 @@ export default function FleetScreen() {
     </View>
   );
 }
+
+export default withSectionGuide(FleetScreen, 'driver_fleet');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, padding: 24 },

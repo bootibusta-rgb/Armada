@@ -22,8 +22,9 @@ import {
   updateVendorMenu,
 } from '../../services/vendorMenuService';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function VendorMenuScreen({ navigation }) {
+function VendorMenuScreen({ navigation }) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile, refreshUserProfile } = useAuth();
@@ -194,6 +195,8 @@ export default function VendorMenuScreen({ navigation }) {
     </KeyboardAvoidingView>
   );
 }
+
+export default withSectionGuide(VendorMenuScreen, 'vendor_menu');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

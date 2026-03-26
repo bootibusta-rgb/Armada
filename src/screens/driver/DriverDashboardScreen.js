@@ -25,10 +25,11 @@ import {
 import { updateFoodOrderStatus } from '../../services/foodOrderService';
 import { isFirebaseReady } from '../../config/firebase';
 import { useAuth } from '../../context/AuthContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
 const SUBSCRIPTION_INFO_KEY = 'armada_driver_subscription_info_seen';
 
-export default function DriverDashboardScreen({ navigation }) {
+function DriverDashboardScreen({ navigation }) {
   const { theme } = useTheme();
   const { userProfile } = useAuth();
   const [isOnline, setIsOnline] = useState(true);
@@ -378,6 +379,8 @@ export default function DriverDashboardScreen({ navigation }) {
     </View>
   );
 }
+
+export default withSectionGuide(DriverDashboardScreen, 'driver_dashboard');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1 },

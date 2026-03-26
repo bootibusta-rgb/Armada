@@ -15,8 +15,9 @@ import { createRideRequest } from '../../services/rideService';
 import { getEmployees } from '../../services/corporateService';
 import { isFirebaseReady } from '../../config/firebase';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function CorporateBookRideScreen({ navigation }) {
+function CorporateBookRideScreen({ navigation }) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -150,6 +151,8 @@ export default function CorporateBookRideScreen({ navigation }) {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(CorporateBookRideScreen, 'corporate_book');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

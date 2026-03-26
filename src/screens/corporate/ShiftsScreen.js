@@ -14,8 +14,9 @@ import { createShift, subscribeToShifts, updateShift, deleteShift } from '../../
 import { useAuth } from '../../context/AuthContext';
 import { isFirebaseReady } from '../../config/firebase';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function ShiftsScreen() {
+function ShiftsScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -173,6 +174,8 @@ export default function ShiftsScreen() {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(ShiftsScreen, 'corporate_shifts');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

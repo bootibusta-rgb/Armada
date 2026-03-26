@@ -23,6 +23,7 @@ import { validatePromo, getPromoDiscount } from '../../services/promoService';
 import { subscribeToVendors } from '../../services/vendorService';
 import { getRouteHistory, addRoute } from '../../services/routeHistoryService';
 import OfflineBanner from '../../components/OfflineBanner';
+import { withSectionGuide } from '../../components/withSectionGuide';
 import RentalCounterOfferModal from '../../components/RentalCounterOfferModal';
 import { isFirebaseReady } from '../../config/firebase';
 import { subscribeCarRentalRequestsForRider } from '../../services/carRentalService';
@@ -74,7 +75,7 @@ const PER_KM_FEE = 50.5;
 const STOP_FEE = 50;      // J$ per stop
 const STOP_MINUTES = 5;   // minutes added per stop
 
-export default function RiderHomeScreen({ navigation, route }) {
+function RiderHomeScreen({ navigation, route }) {
   const { theme } = useTheme();
   const { userProfile } = useAuth();
   const rebook = route.params || {};
@@ -620,6 +621,8 @@ export default function RiderHomeScreen({ navigation, route }) {
     </View>
   );
 }
+
+export default withSectionGuide(RiderHomeScreen, 'rider_home');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1 },

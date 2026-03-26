@@ -4,8 +4,9 @@ import { useAuth } from '../../context/AuthContext';
 import { getDriverEarnings } from '../../services/earningsService';
 import { isFirebaseReady } from '../../config/firebase';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function EarningsScreen() {
+function EarningsScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -84,6 +85,8 @@ export default function EarningsScreen() {
     </View>
   );
 }
+
+export default withSectionGuide(EarningsScreen, 'driver_earnings');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, padding: 24 },

@@ -23,13 +23,14 @@ import {
 } from '../../services/driverSubscriptionService';
 import { getComplianceScore } from '../../services/complianceService';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
 const SUBSCRIPTION_INFO = `Armada Driver Subscription:
 • J$1,000 per 24 hours
 • First day FREE
 • Share your QR with other drivers: they get 50% off (J$500) on their first payment`;
 
-export default function DriverProfileScreen() {
+function DriverProfileScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile, refreshUserProfile } = useAuth();
@@ -184,6 +185,8 @@ export default function DriverProfileScreen() {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(DriverProfileScreen, 'driver_profile');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

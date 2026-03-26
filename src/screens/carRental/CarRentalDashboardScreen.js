@@ -18,6 +18,7 @@ import {
   isCarRentalListingSubscriptionActive,
 } from '../../services/carRentalService';
 import { CAR_RENTAL_LISTING_FEE_PER_VEHICLE_WEEK_JMD } from '../../config/carRentalPricing';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
 const STATUS_LABEL = {
   pending: 'Pending',
@@ -27,7 +28,7 @@ const STATUS_LABEL = {
   unavailable: 'Unavailable',
 };
 
-export default function CarRentalDashboardScreen({ navigation }) {
+function CarRentalDashboardScreen({ navigation }) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile, user, refreshUserProfile } = useAuth();
@@ -129,6 +130,8 @@ export default function CarRentalDashboardScreen({ navigation }) {
     </View>
   );
 }
+
+export default withSectionGuide(CarRentalDashboardScreen, 'car_rental_home');
 
 const createStyles = (theme) =>
   StyleSheet.create({

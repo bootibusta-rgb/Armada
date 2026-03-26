@@ -4,8 +4,9 @@ import { subscribeToDriverShifts, acceptShift } from '../../services/corporateSe
 import { useAuth } from '../../context/AuthContext';
 import { isFirebaseReady } from '../../config/firebase';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function CorporateGigsScreen() {
+function CorporateGigsScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -92,6 +93,8 @@ export default function CorporateGigsScreen() {
     </View>
   );
 }
+
+export default withSectionGuide(CorporateGigsScreen, 'driver_corporate');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, padding: 24 },

@@ -4,8 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { getCompanyRides } from '../../services/corporateService';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function CorporateInvoiceScreen({ navigation }) {
+function CorporateInvoiceScreen({ navigation }) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -55,6 +56,8 @@ export default function CorporateInvoiceScreen({ navigation }) {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(CorporateInvoiceScreen, 'corporate_invoice');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

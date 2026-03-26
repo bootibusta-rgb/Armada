@@ -21,8 +21,9 @@ import {
   payCarRentalListingWithPayPal,
   payCarRentalListingFallback,
 } from '../../services/carRentalListingPayPalService';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function CarRentalListingScreen() {
+function CarRentalListingScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { user, userProfile, refreshUserProfile, setUserProfile } = useAuth();
@@ -202,6 +203,8 @@ export default function CarRentalListingScreen() {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(CarRentalListingScreen, 'car_rental_listing');
 
 const createStyles = (theme) =>
   StyleSheet.create({

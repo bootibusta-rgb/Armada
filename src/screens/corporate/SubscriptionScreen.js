@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { processCorporateSubscription } from '../../services/paymentService';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function SubscriptionScreen() {
+function SubscriptionScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const [subscribed, setSubscribed] = useState(false);
@@ -46,6 +47,8 @@ export default function SubscriptionScreen() {
     </View>
   );
 }
+
+export default withSectionGuide(SubscriptionScreen, 'corporate_subscription');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background, padding: 24 },

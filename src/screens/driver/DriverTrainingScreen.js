@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
 const TRAINING_MODULES = [
   {
@@ -69,7 +70,7 @@ const TRAINING_MODULES = [
 
 const COMPLETED_KEY = 'armada_driver_training_completed';
 
-export default function DriverTrainingScreen() {
+function DriverTrainingScreen() {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
@@ -173,6 +174,8 @@ export default function DriverTrainingScreen() {
     </ScrollView>
   );
 }
+
+export default withSectionGuide(DriverTrainingScreen, 'driver_training');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

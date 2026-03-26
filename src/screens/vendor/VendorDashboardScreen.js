@@ -5,8 +5,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { getVendorMenu } from '../../services/vendorMenuService';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function VendorDashboardScreen() {
+function VendorDashboardScreen() {
   const { theme } = useTheme();
   const { userProfile } = useAuth();
   const navigation = useNavigation();
@@ -73,6 +74,8 @@ export default function VendorDashboardScreen() {
     </View>
   );
 }
+
+export default withSectionGuide(VendorDashboardScreen, 'vendor_dashboard');
 
 const createStyles = (theme) => StyleSheet.create({
   container: {

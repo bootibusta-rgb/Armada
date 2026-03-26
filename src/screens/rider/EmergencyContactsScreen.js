@@ -20,8 +20,9 @@ import {
   saveEmergencyContacts,
   findAppUserByPhone,
 } from '../../services/emergencyContactsService';
+import { withSectionGuide } from '../../components/withSectionGuide';
 
-export default function EmergencyContactsScreen() {
+function EmergencyContactsScreen() {
   const { theme } = useTheme();
   const { userProfile } = useAuth();
   const styles = createStyles(theme);
@@ -175,6 +176,8 @@ export default function EmergencyContactsScreen() {
     </KeyboardAvoidingView>
   );
 }
+
+export default withSectionGuide(EmergencyContactsScreen, 'rider_safety');
 
 const createStyles = (theme) => StyleSheet.create({
   container: { flex: 1, backgroundColor: theme.colors.background },

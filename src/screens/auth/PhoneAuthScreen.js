@@ -13,6 +13,7 @@ import {
 import { sendOTP } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
 import { isProductionApp } from '../../config/appEnv';
+import { APP_UI_BUILD_TAG } from '../../constants/appBuildTag';
 
 export default function PhoneAuthScreen({ navigation }) {
   const { theme } = useTheme();
@@ -49,6 +50,9 @@ export default function PhoneAuthScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Armada 🇯🇲</Text>
         <Text style={styles.subtitle}>Bid your price. Ride Armada.</Text>
+        <Text style={styles.buildTag} selectable>
+          {APP_UI_BUILD_TAG}
+        </Text>
         <View style={styles.form}>
           <TextInput
             style={styles.input}
@@ -115,7 +119,15 @@ const createStyles = (theme) => StyleSheet.create({
     fontSize: 16,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: 8,
+  },
+  buildTag: {
+    fontSize: 11,
+    color: theme.colors.primary,
+    textAlign: 'center',
+    fontWeight: '600',
+    marginBottom: 20,
+    paddingHorizontal: 12,
   },
   form: {
     gap: 16,

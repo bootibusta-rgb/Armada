@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -10,15 +10,26 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { sendOTP } from '../../services/authService';
+import { sendOTP, getCurrentAuthUid } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { isProductionApp } from '../../config/appEnv';
 import { APP_UI_BUILD_TAG } from '../../constants/appBuildTag';
 
 export default function PhoneAuthScreen({ navigation }) {
   const { theme } = useTheme();
+  const { user, userProfile, loading: authLoading, demoMode } = useAuth();
   const [phone, setPhone] = useState('+1876');
   const [loading, setLoading] = useState(false);
+
+  // Firebase session exists but no Firestore profile yet — don't leave user on the phone screen forever.
+  useEffect(() => {
+    if (authLoading || demoMode) return;
+    const uid = getCurrentAuthUid(user);
+    if (uid && !userProfile) {
+      navigation.replace('RoleSelect');
+    }
+  }, [authLoading, demoMode, user, userProfile, navigation]);
 
   const handleSendOTP = async () => {
     if (!phone || phone.length < 10) {

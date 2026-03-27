@@ -11,9 +11,10 @@ import {
   getDocs,
   onSnapshot,
   serverTimestamp,
-} from 'firebase/firestore';
+  db,
+} from '../config/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { db, storage, isFirebaseReady } from '../config/firebase';
+import { storage, isFirebaseReady } from '../config/firebase';
 
 export const uploadVehiclePhoto = async (driverId, uri) => {
   if (!isFirebaseReady || !storage || !driverId) throw new Error('Firebase not configured');

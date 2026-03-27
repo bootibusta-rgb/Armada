@@ -10,10 +10,11 @@ import {
   orderBy,
   onSnapshot,
   serverTimestamp,
-} from 'firebase/firestore';
+  db,
+} from '../config/firestore';
 import { ref, set, onValue, get } from 'firebase/database';
 import { httpsCallable } from 'firebase/functions';
-import { db, realtimeDb, functions, isFirebaseReady } from '../config/firebase';
+import { realtimeDb, functions, isFirebaseReady } from '../config/firebase';
 import { createFoodOrder } from './foodOrderService';
 import { analyticsEvents } from './analyticsService';
 import { haversineKm } from '../utils/haversine';

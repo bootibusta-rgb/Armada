@@ -1,5 +1,5 @@
-import { collection, doc, addDoc, updateDoc, onSnapshot, query, where, serverTimestamp } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+import { collection, doc, addDoc, updateDoc, onSnapshot, query, where, serverTimestamp, db } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 
 export const createFoodOrder = async (rideId, vendorId, items, extraFee, itemsTotal = 0, itemsWithPrices = []) => {
   if (!isFirebaseReady || !db) throw new Error('Firebase not configured');

@@ -1,8 +1,9 @@
 /**
  * Rating service - rider rates driver, driver rates rider after ride completion.
  */
-import { doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+import { doc, updateDoc, getDoc, serverTimestamp } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
+import { db } from '../config/firestore';
 
 export async function submitRating(rideId, fromUserId, toUserId, rating, role) {
   if (!isFirebaseReady || !db) throw new Error('Firebase not configured');

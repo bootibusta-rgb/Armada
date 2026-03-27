@@ -13,8 +13,8 @@
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
-import { doc, updateDoc } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+import { doc, updateDoc, db } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 
 const isExpoGo = Constants.appOwnership === 'expo';
 

@@ -1,5 +1,5 @@
-import { collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+import { collection, query, where, getDocs, onSnapshot, db } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 
 const VENDOR_PIN_COLORS = ['orange', 'purple', 'red', 'green', 'blue'];
 

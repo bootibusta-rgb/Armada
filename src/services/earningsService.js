@@ -4,8 +4,8 @@ import {
   where,
   getDocs,
   orderBy,
-} from 'firebase/firestore';
-import { db } from '../config/firebase';
+  db,
+} from '../config/firestore';
 
 const PLATFORM_CUT = 0.2; // 20%
 

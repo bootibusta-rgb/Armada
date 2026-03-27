@@ -11,9 +11,10 @@ import {
   doc,
   getDocs,
   getDoc,
-} from 'firebase/firestore';
+  db,
+} from '../config/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { db, storage, isFirebaseReady } from '../config/firebase';
+import { storage, isFirebaseReady } from '../config/firebase';
 import { haversineKm } from '../utils/haversine';
 import {
   CAR_RENTAL_LISTING_FEE_PER_VEHICLE_WEEK_JMD,

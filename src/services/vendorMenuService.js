@@ -1,5 +1,5 @@
-import { doc, updateDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+import { doc, updateDoc, getDoc, serverTimestamp, db } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 
 export const getVendorMenu = async (vendorId) => {
   if (!isFirebaseReady || !db || !vendorId) return [];

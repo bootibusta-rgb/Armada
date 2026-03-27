@@ -1,11 +1,11 @@
 import { Platform } from 'react-native';
 import { initializeApp } from 'firebase/app';
 import { getAuth, initializeAuth, getReactNativePersistence } from 'firebase/auth';
-import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 import ReactNativeAsyncStorage from '@react-native-async-storage/async-storage';
+import { attachFirestore } from './firestore';
 
 // Config from env (EXPO_PUBLIC_*). Copy .env.example to .env and fill values.
 const firebaseConfig = {
@@ -25,7 +25,6 @@ const isConfigValid =
 
 let app = null;
 let auth = null;
-let db = null;
 let realtimeDb = null;
 let functions = null;
 let storage = null;
@@ -40,18 +39,20 @@ if (isConfigValid) {
     } else {
       auth = getAuth(app);
     }
-    db = getFirestore(app);
+    attachFirestore(app);
     realtimeDb = getDatabase(app);
     functions = getFunctions(app);
     storage = getStorage(app);
   } catch (e) {
     if (e?.code === 'auth/already-initialized') {
       auth = getAuth(app);
+      attachFirestore(app);
     } else {
       console.warn('Firebase init failed:', e?.message);
     }
   }
 }
 
-export { app, auth, db, realtimeDb, functions, storage };
+export { app, auth, realtimeDb, functions, storage };
+export { db } from './firestore';
 export const isFirebaseReady = !!auth;

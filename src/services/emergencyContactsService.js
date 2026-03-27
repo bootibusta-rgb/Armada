@@ -1,7 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
-import { useNativeAuth } from './authService';
+import { doc, getDoc, updateDoc, collection, query, where, getDocs, onSnapshot, db } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 
 const STORAGE_KEY = '@armada_emergency_contacts';
 const DEFAULT_CONTACTS = [{ id: '1', name: 'Emergency', phone: '+18765551234' }];
@@ -80,20 +79,11 @@ export function subscribeToContactOnline(uid, callback) {
 
 /**
  * Update current user's lastSeen (call when app is active)
- * On native, use RNFB Firestore so auth matches (avoids permission errors before JS SDK sync)
  */
 export async function updatePresence(userId) {
   if (!userId || String(userId).startsWith('demo-')) return;
   try {
-    if (useNativeAuth) {
-      const rnf = require('@react-native-firebase/firestore');
-      const { getFirestore, doc, updateDoc } = rnf;
-      const rnDb = getFirestore();
-      await updateDoc(doc(rnDb, 'users', userId), {
-        lastSeen: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-      });
-    } else if (isFirebaseReady && db) {
+    if (isFirebaseReady && db) {
       await updateDoc(doc(db, 'users', userId), {
         lastSeen: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

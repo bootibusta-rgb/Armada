@@ -10,8 +10,9 @@ import {
   where,
   onSnapshot,
   serverTimestamp,
-} from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+  db,
+} from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 
 export const createShift = async (companyId, shiftData) => {
   const shiftsRef = collection(db, 'corporateShifts');

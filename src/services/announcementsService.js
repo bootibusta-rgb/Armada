@@ -1,5 +1,5 @@
-import { collection, getDocs, query, orderBy, limit } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+import { collection, getDocs, query, orderBy, limit, db } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 import { DEFAULT_ANNOUNCEMENTS } from '../config/announcements';
 
 /**

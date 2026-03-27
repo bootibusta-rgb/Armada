@@ -1,5 +1,5 @@
-import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+import { doc, getDoc, updateDoc, increment, db } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 import { MAX_COIN_REDEMPTIONS_PER_MONTH } from '../constants/armadaCoins';
 
 const EARN_RATE = 1; // 1 Armada coin per J$100 spent

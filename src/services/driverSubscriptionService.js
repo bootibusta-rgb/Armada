@@ -1,5 +1,5 @@
-import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+import { doc, getDoc, updateDoc, serverTimestamp, Timestamp, db } from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 
 export const DRIVER_DAILY_FEE = 1000;       // JMD per 24 hours
 export const REFERRAL_FIRST_DAY_FEE = 500; // 50% off for referred drivers

@@ -3,9 +3,10 @@
  * - App users: Firestore signal + optional video call (WebRTC)
  * - Non-app users: SMS + location link
  */
-import { collection, addDoc, doc, onSnapshot, updateDoc, query, where } from 'firebase/firestore';
+import { collection, addDoc, doc, onSnapshot, updateDoc, query, where } from '../config/firestore';
 import { ref, set, push, onValue } from 'firebase/database';
-import { db, realtimeDb, isFirebaseReady } from '../config/firebase';
+import { realtimeDb, isFirebaseReady } from '../config/firebase';
+import { db } from '../config/firestore';
 import * as Location from 'expo-location';
 import * as Speech from 'expo-speech';
 import { Linking } from 'react-native';

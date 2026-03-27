@@ -4,20 +4,17 @@ import {
   RecaptchaVerifier,
   signOut as firebaseSignOut,
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { auth, db, isFirebaseReady } from '../config/firebase';
+import { auth, isFirebaseReady } from '../config/firebase';
+import { db, doc, setDoc, getDoc } from '../config/firestore';
 
 let recaptchaVerifier = null;
 const isWeb = Platform.OS === 'web';
 
 // React Native Firebase - for real phone OTP on native (requires dev build, not Expo Go)
 let rnAuthNamespace = null;
-let rnFirestoreModular = null;
 if (!isWeb) {
   try {
     rnAuthNamespace = require('@react-native-firebase/auth').default;
-    const rnfFirestore = require('@react-native-firebase/firestore');
-    rnFirestoreModular = rnfFirestore;
   } catch (e) {
     // RNFB not available (e.g. Expo Go)
   }
@@ -74,35 +71,21 @@ export const createUserProfile = async (uid, data) => {
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };
-  if (useNativeAuth && rnFirestoreModular) {
-    const { getFirestore, doc, setDoc } = rnFirestoreModular;
-    const rnDb = getFirestore();
-    await setDoc(doc(rnDb, 'users', uid), payload);
-  } else if (isFirebaseReady && db) {
+  if (isFirebaseReady && db) {
     await setDoc(doc(db, 'users', uid), payload);
   }
 };
 
-/** Merge-update user profile (for role forms). Works with both RNFB and firebase JS. */
+/** Merge-update user profile (for role forms). */
 export const updateUserProfile = async (uid, data) => {
   const payload = { ...data, updatedAt: new Date().toISOString() };
-  if (useNativeAuth && rnFirestoreModular) {
-    const { getFirestore, doc, setDoc } = rnFirestoreModular;
-    const rnDb = getFirestore();
-    await setDoc(doc(rnDb, 'users', uid), payload, { merge: true });
-  } else if (isFirebaseReady && db) {
+  if (isFirebaseReady && db) {
     await setDoc(doc(db, 'users', uid), payload, { merge: true });
   }
 };
 
 export const getUserProfile = async (uid) => {
   if (!uid) return null;
-  if (useNativeAuth && rnFirestoreModular) {
-    const { getFirestore, doc, getDoc } = rnFirestoreModular;
-    const rnDb = getFirestore();
-    const snap = await getDoc(doc(rnDb, 'users', uid));
-    return snap.exists() ? { id: snap.id, ...snap.data() } : null;
-  }
   if (!isFirebaseReady || !db) return null;
   const snap = await getDoc(doc(db, 'users', uid));
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;

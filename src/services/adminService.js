@@ -10,8 +10,9 @@ import {
   where,
   updateDoc,
   serverTimestamp,
-} from 'firebase/firestore';
-import { db, isFirebaseReady } from '../config/firebase';
+  db,
+} from '../config/firestore';
+import { isFirebaseReady } from '../config/firebase';
 import { updateRide } from './rideService';
 import { updateFoodOrderStatus } from './foodOrderService';
 import { updateEmergencyCallStatus } from './emergencyService';

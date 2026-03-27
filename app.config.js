@@ -57,7 +57,7 @@ export default {
         },
       ],
       [
-        'expo-audio',
+        'expo-av',
         {
           microphonePermission: 'Allow Armada to use your microphone for voice bidding.',
         },

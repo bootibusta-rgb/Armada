@@ -9,47 +9,53 @@ import {
   TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import {
-  useAudioRecorder,
-  RecordingPresets,
-  setAudioModeAsync,
-  useAudioRecorderState,
-  requestRecordingPermissionsAsync,
-} from 'expo-audio';
+import { Audio } from 'expo-av';
 import { useTheme } from '../context/ThemeContext';
 
 export default function VoiceBiddingButton({ onResult }) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
-  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
-  const recorderState = useAudioRecorderState(audioRecorder);
+  const [recording, setRecording] = useState(false);
+  const [recordingObj, setRecordingObj] = useState(null);
   const [showInputModal, setShowInputModal] = useState(false);
   const [spokenBid, setSpokenBid] = useState('');
 
   const handlePress = async () => {
-    if (recorderState.isRecording) {
+    if (recording) {
       try {
-        await audioRecorder.stop();
-      } catch (e) {
+        if (recordingObj) {
+          await recordingObj.stopAndUnloadAsync();
+          setRecordingObj(null);
+        }
+      } catch {
         /* ignore */
       }
+      setRecording(false);
       setShowInputModal(true);
       return;
     }
+    setRecording(true);
     try {
-      const { granted } = await requestRecordingPermissionsAsync();
-      if (!granted) {
+      const { status } = await Audio.requestPermissionsAsync();
+      if (status !== 'granted') {
         Alert.alert('Permission', 'Microphone access needed for voice bidding');
+        setRecording(false);
         return;
       }
-      await setAudioModeAsync({
-        playsInSilentMode: true,
-        allowsRecording: true,
+      await Audio.setAudioModeAsync({
+        allowsRecordingIOS: true,
+        playsInSilentModeIOS: true,
+        staysActiveInBackground: false,
+        shouldDuckAndroid: true,
+        playThroughEarpieceAndroid: false,
       });
-      await audioRecorder.prepareToRecordAsync();
-      audioRecorder.record();
+      const { recording: rec } = await Audio.Recording.createAsync(
+        Audio.RecordingOptionsPresets.HIGH_QUALITY
+      );
+      setRecordingObj(rec);
     } catch {
       Alert.alert('Error', 'Could not start recording. Enter bid manually.');
+      setRecording(false);
     }
   };
 
@@ -67,11 +73,11 @@ export default function VoiceBiddingButton({ onResult }) {
   return (
     <>
       <TouchableOpacity
-        style={[styles.button, recorderState.isRecording && styles.recording]}
+        style={[styles.button, recording && styles.recording]}
         onPress={handlePress}
       >
         <Ionicons name="mic" size={24} color={theme.colors.onPrimary} />
-        <Text style={styles.text}>{recorderState.isRecording ? 'Tap to stop' : 'Voice bid'}</Text>
+        <Text style={styles.text}>{recording ? 'Tap to stop' : 'Voice bid'}</Text>
       </TouchableOpacity>
       <Modal visible={showInputModal} transparent animationType="fade">
         <TouchableOpacity

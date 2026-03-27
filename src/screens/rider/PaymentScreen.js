@@ -13,7 +13,7 @@
  * - Cash: Pay driver directly
  * - PayPal (web): Uses @paypal/react-paypal-js. Guest checkout (card) supported.
  */
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -41,6 +41,8 @@ import { analyticsEvents } from '../../services/analyticsService';
 import { useTheme } from '../../context/ThemeContext';
 import PayPalButton from '../../components/PayPalButton';
 import RatingModal from '../../components/RatingModal';
+import { updateRide } from '../../services/rideService';
+import { isFirebaseReady } from '../../config/firebase';
 
 export default function PaymentScreen({ route, navigation }) {
   const { theme } = useTheme();
@@ -54,6 +56,11 @@ export default function PaymentScreen({ route, navigation }) {
 
   // Agreed fare (stored from ride agreement) - no partials allowed
   const agreedFare = (fare || 1500) - (effectiveUseRedeem ? REDEEM_DISCOUNT : 0);
+
+  useEffect(() => {
+    if (!rideId || demoMode || !effectiveUseRedeem || !isFirebaseReady) return;
+    updateRide(rideId, { useRedeem: true }).catch(() => {});
+  }, [rideId, effectiveUseRedeem, demoMode]);
 
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loading, setLoading] = useState(false);

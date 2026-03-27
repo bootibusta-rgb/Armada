@@ -40,6 +40,10 @@ function IrieCoinsScreen() {
         <Text style={styles.cardHighlight}>
           This month: {redemption.remaining} of {redemption.limit} redemptions left · {redemption.used} used
         </Text>
+        <Text style={[styles.cardText, { marginTop: 10 }]}>
+          When you apply coins on an active ride or at payment, your driver gets a push notification and an in-app note so they
+          expect the reduced fare.
+        </Text>
       </View>
       <TouchableOpacity
         style={[styles.redeemBtn, !canRedeemNow && styles.redeemBtnDisabled]}

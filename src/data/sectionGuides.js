@@ -21,7 +21,7 @@ export const SECTION_GUIDES = {
     steps: [
       'New riders get 100 coins (J$100 off one ride). You can redeem only 3 times per calendar month, no matter how many coins you have.',
       'Earn without limit: 1 coin per J$100 spent on rides. Only redemptions are capped; balances carry over.',
-      'Redeem 100 coins for J$100 off — toggle on Home before you book. Count resets on the 1st of each month.',
+      'Redeem 100 coins for J$100 off — toggle on Home before you book, or in Active ride before you pay. Your driver gets notified. Count resets on the 1st of each month.',
     ],
   },
   rider_safety: {

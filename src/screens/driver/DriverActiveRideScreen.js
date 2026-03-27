@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { useAuth } from '../../context/AuthContext';
 import { getUserProfile } from '../../services/authService';
-import { updateDriverLocation, cancelRide, notifyDriverApproaching } from '../../services/rideService';
+import { updateDriverLocation, cancelRide, notifyDriverApproaching, subscribeToRide } from '../../services/rideService';
 import { analyticsEvents } from '../../services/analyticsService';
 import { useTheme } from '../../context/ThemeContext';
 import CancelRideModal from '../../components/CancelRideModal';
@@ -17,8 +17,10 @@ export default function DriverActiveRideScreen({ route, navigation }) {
   const { theme } = useTheme();
   const styles = createStyles(theme);
   const { userProfile } = useAuth();
-  const ride = route.params?.ride || {};
+  const initialRide = route.params?.ride || {};
+  const [ride, setRide] = useState(initialRide);
   const fare = ride.finalFare || ride.bidPrice || 0;
+  const showCoinRedeemBanner = !!(ride.useRedeem || ride.coinRedeemDriverNotifiedAt);
   const isCompleted = ride.status === 'completed';
   const [loc, setLoc] = useState(null);
   const [riderPhone, setRiderPhone] = useState(null);
@@ -31,6 +33,15 @@ export default function DriverActiveRideScreen({ route, navigation }) {
       getUserProfile(ride.riderId).then((p) => setRiderPhone(p?.phone || null));
     }
   }, [ride.riderId]);
+
+  useEffect(() => {
+    const id = initialRide?.id;
+    if (!id) return () => {};
+    const unsub = subscribeToRide(id, (r) => {
+      if (r) setRide(r);
+    });
+    return unsub;
+  }, [initialRide?.id]);
 
   useEffect(() => {
     if (!userProfile?.id || isCompleted) return;
@@ -72,6 +83,15 @@ export default function DriverActiveRideScreen({ route, navigation }) {
         <Text style={styles.riderName}>{ride.riderName || 'Rider'}</Text>
         <Text style={styles.route}>{ride.pickup || 'Pickup'} → {ride.dropoff || 'Dropoff'}</Text>
         <Text style={styles.fare}>J${fare}</Text>
+        {showCoinRedeemBanner && (
+          <View style={styles.coinsBanner}>
+            <Text style={styles.coinsBannerTitle}>Armada Coins</Text>
+            <Text style={styles.coinsBannerText}>
+              Rider is using 100 coins for J$100 off this trip. The fare shown here is what they pay — you were notified by push
+              when they applied coins.
+            </Text>
+          </View>
+        )}
         <View style={styles.contactRow}>
           <TouchableOpacity
             style={styles.contactBtn}
@@ -140,6 +160,16 @@ const createStyles = (theme) => StyleSheet.create({
   riderName: { fontSize: 22, fontWeight: 'bold', color: theme.colors.primary },
   route: { fontSize: 16, color: theme.colors.textSecondary, marginTop: 8 },
   fare: { fontSize: 28, fontWeight: 'bold', color: theme.colors.accent, marginTop: 12 },
+  coinsBanner: {
+    marginTop: 14,
+    padding: 12,
+    borderRadius: 10,
+    backgroundColor: theme.colors.secondary + '22',
+    borderWidth: 2,
+    borderColor: theme.colors.secondary,
+  },
+  coinsBannerTitle: { fontSize: 14, fontWeight: '800', color: theme.colors.primary },
+  coinsBannerText: { fontSize: 13, color: theme.colors.textSecondary, marginTop: 6, lineHeight: 18 },
   contactRow: { flexDirection: 'row', gap: 12, marginTop: 16 },
   contactBtn: {
     flex: 1,

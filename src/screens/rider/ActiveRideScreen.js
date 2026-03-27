@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,17 @@ import {
   Linking,
   ActionSheetIOS,
   Platform,
+  Switch,
 } from 'react-native';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { getUserProfile } from '../../services/authService';
 import { useTheme } from '../../context/ThemeContext';
-import { subscribeToDriverLocation, cancelRide } from '../../services/rideService';
+import { subscribeToDriverLocation, cancelRide, updateRide } from '../../services/rideService';
+import { isFirebaseReady } from '../../config/firebase';
+import { REDEEM_DISCOUNT, canApplyCoinRedemption, getRedemptionSummary } from '../../services/iriCoinsService';
+import { DEFAULT_RIDER_COINS_FALLBACK } from '../../constants/armadaCoins';
 import { analyticsEvents } from '../../services/analyticsService';
 import CancelRideModal from '../../components/CancelRideModal';
 import { haversineKm } from '../../utils/haversine';
@@ -44,6 +48,20 @@ export default function ActiveRideScreen({ route, navigation }) {
   const { theme } = useTheme();
   const { driver, fare, demo, rideId, pickup, dropoff } = route.params || {};
   const { userProfile } = useAuth();
+  const coins = userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK;
+  const redemption = getRedemptionSummary(userProfile || {});
+  const canRedeemCoins = canApplyCoinRedemption(userProfile, coins);
+  const [applyCoinsAtPayment, setApplyCoinsAtPayment] = useState(() => !!route.params?.useRedeem);
+
+  useEffect(() => {
+    if (canRedeemCoins) return;
+    setApplyCoinsAtPayment((prev) => {
+      if (prev && rideId && !demo && isFirebaseReady) {
+        updateRide(rideId, { useRedeem: false }).catch(() => {});
+      }
+      return false;
+    });
+  }, [canRedeemCoins, rideId, demo]);
   const [etaSeconds, setEtaSeconds] = useState(null);
   const [sharing, setSharing] = useState(false);
   const [location, setLocation] = useState(null);
@@ -195,13 +213,42 @@ export default function ActiveRideScreen({ route, navigation }) {
     }
   };
 
+  const syncRideUseRedeem = useCallback(
+    async (value) => {
+      if (demo || !rideId || !isFirebaseReady) return;
+      try {
+        await updateRide(rideId, { useRedeem: value });
+      } catch (e) {
+        Alert.alert('Could not update ride', e?.message || 'Try again.');
+      }
+    },
+    [demo, rideId]
+  );
+
+  const onToggleCoinsForPayment = (value) => {
+    if (value && !canRedeemCoins) {
+      Alert.alert(
+        'Cannot apply coins',
+        coins < 100
+          ? 'You need at least 100 Armada Coins.'
+          : `You’ve used all ${redemption.limit} redemptions this month.`
+      );
+      return;
+    }
+    setApplyCoinsAtPayment(value);
+    syncRideUseRedeem(value);
+  };
+
+  const styles = createStyles(theme);
+
   const handleComplete = () => {
+    const useRedeemAtPayment = applyCoinsAtPayment && canRedeemCoins;
     navigation.navigate('Payment', {
       rideId: route.params?.rideId || 'demo-ride-1',
       fare: fare || 1500,
       driver,
       demo,
-      useRedeem: route.params?.useRedeem,
+      useRedeem: useRedeemAtPayment,
       pickup: route.params?.pickup,
       dropoff: route.params?.dropoff,
     });
@@ -237,6 +284,30 @@ export default function ActiveRideScreen({ route, navigation }) {
         <View style={styles.driverCard}>
           <Text style={styles.driverName}>{driver?.name || 'Driver'}</Text>
           <Text style={styles.fare}>J${fare || 1500}</Text>
+          <View style={styles.coinsSection}>
+            <Text style={styles.coinsSectionTitle}>Armada Coins (this ride)</Text>
+            <Text style={styles.coinsSectionMeta}>
+              Turn on to use 100 coins for J${REDEEM_DISCOUNT} off when you pay. Redemptions: {redemption.remaining} of{' '}
+              {redemption.limit} left this month. Your driver gets a notification so they know the fare is reduced.
+            </Text>
+            <View style={styles.coinsSwitchRow}>
+              <Text style={styles.coinsSwitchLabel}>Apply 100 coins at payment</Text>
+              <Switch
+                value={applyCoinsAtPayment && canRedeemCoins}
+                onValueChange={onToggleCoinsForPayment}
+                disabled={!canRedeemCoins}
+                trackColor={{ false: theme.colors.textSecondary + '55', true: theme.colors.primary + '99' }}
+                thumbColor={applyCoinsAtPayment && canRedeemCoins ? theme.colors.primary : theme.colors.surface}
+              />
+            </View>
+            {!canRedeemCoins && (
+              <Text style={styles.coinsSectionHint}>
+                {coins < 100
+                  ? 'Earn more coins from rides (1 per J$100 spent) to unlock this option.'
+                  : 'Monthly redemption limit reached — try again next month.'}
+              </Text>
+            )}
+          </View>
           <View style={styles.contactRow}>
             <TouchableOpacity
               style={styles.contactBtn}
@@ -343,6 +414,28 @@ const createStyles = (theme) => StyleSheet.create({
   },
   driverName: { fontSize: 18, fontWeight: 'bold', color: theme.colors.primary },
   fare: { fontSize: 20, color: theme.colors.accent, marginTop: 4 },
+  coinsSection: {
+    marginTop: 14,
+    paddingTop: 14,
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.primaryLight,
+  },
+  coinsSectionTitle: { fontSize: 15, fontWeight: '700', color: theme.colors.primary },
+  coinsSectionMeta: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 6,
+    lineHeight: 17,
+  },
+  coinsSwitchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 12,
+    gap: 12,
+  },
+  coinsSwitchLabel: { flex: 1, fontSize: 14, fontWeight: '600', color: theme.colors.text },
+  coinsSectionHint: { fontSize: 12, color: theme.colors.error, marginTop: 8 },
   contactRow: { flexDirection: 'row', gap: 12, marginTop: 12 },
   contactBtn: {
     flex: 1,

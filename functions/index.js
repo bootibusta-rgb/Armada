@@ -663,6 +663,34 @@ async function sendExpoPush(token, title, body, data = {}) {
   }
 }
 
+/**
+ * One-time push to driver when rider uses Armada Coins on an accepted ride:
+ * accept with useRedeem, or rider turns useRedeem on mid-ride.
+ */
+async function notifyDriverAboutCoinRedemptionIfNeeded(rideId, before, after) {
+  if (!after || after.status !== 'accepted' || !after.driverId || after.useRedeem !== true) return;
+  if (after.coinRedeemDriverNotifiedAt) return;
+  const becameAccepted = before.status !== 'accepted' && after.status === 'accepted';
+  const redeemTurnedOn = before.useRedeem !== true && after.useRedeem === true;
+  if (!becameAccepted && !redeemTurnedOn) return;
+
+  const rideRef = admin.firestore().collection('rides').doc(rideId);
+  await rideRef.update({
+    coinRedeemDriverNotifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+
+  const userSnap = await admin.firestore().collection('users').doc(after.driverId).get();
+  const token = userSnap.data()?.pushToken;
+  if (!token) return;
+  const riderName = after.riderName || 'Rider';
+  await sendExpoPush(
+    token,
+    'Armada Coins on this ride',
+    `${riderName} is using 100 coins for J$100 off. Collect the reduced fare shown in the app.`,
+    { rideId, type: 'rider_coin_redeem' }
+  );
+}
+
 /** On new bid: notify rider */
 exports.onBidCreate = functions.firestore
   .document('rides/{rideId}/bids/{bidId}')
@@ -687,7 +715,7 @@ exports.onBidCreate = functions.firestore
     );
   });
 
-/** On ride accepted: notify rider */
+/** On ride accepted: notify rider; on coin redemption flag: notify driver */
 exports.onRideUpdate = functions.firestore
   .document('rides/{rideId}')
   .onUpdate(async (change, ctx) => {
@@ -697,33 +725,38 @@ exports.onRideUpdate = functions.firestore
 
     if (before.status !== 'accepted' && after.status === 'accepted') {
       const riderId = after.riderId;
-      if (!riderId) return;
-      const userSnap = await admin.firestore().collection('users').doc(riderId).get();
-      const token = userSnap.data()?.pushToken;
-      if (!token) return;
-      const driverName = after.driverName || 'Your driver';
-      await sendExpoPush(
-        token,
-        'Ride accepted',
-        `${driverName} is on the way!`,
-        { rideId, type: 'accepted' }
-      );
-      return;
+      if (riderId) {
+        const userSnap = await admin.firestore().collection('users').doc(riderId).get();
+        const token = userSnap.data()?.pushToken;
+        if (token) {
+          const driverName = after.driverName || 'Your driver';
+          await sendExpoPush(
+            token,
+            'Ride accepted',
+            `${driverName} is on the way!`,
+            { rideId, type: 'accepted' }
+          );
+        }
+      }
     }
 
     if (after.status === 'cancelled') {
       const riderId = after.riderId;
-      if (!riderId) return;
-      const userSnap = await admin.firestore().collection('users').doc(riderId).get();
-      const token = userSnap.data()?.pushToken;
-      if (!token) return;
-      await sendExpoPush(
-        token,
-        'Ride cancelled',
-        'Refund issued',
-        { rideId, ride_id: rideId, type: 'cancelled' }
-      );
+      if (riderId) {
+        const userSnap = await admin.firestore().collection('users').doc(riderId).get();
+        const token = userSnap.data()?.pushToken;
+        if (token) {
+          await sendExpoPush(
+            token,
+            'Ride cancelled',
+            'Refund issued',
+            { rideId, ride_id: rideId, type: 'cancelled' }
+          );
+        }
+      }
     }
+
+    await notifyDriverAboutCoinRedemptionIfNeeded(rideId, before, after);
   });
 
 /**

@@ -3,6 +3,7 @@
  *
  * Expected notification payloads (from backend/Cloud Functions):
  * - "Your driver is X min away" – use real ETA (e.g. 2 min), not generic "10 min"
+ * - "Armada Coins on this ride" (drivers) – rider applied 100 coins / J$100 off; data.type rider_coin_redeem, rideId
  * - "Ride cancelled—refund issued" – include deep link: armada://ride/{rideId}/receipt
  *
  * Deep link handling: armada://ride/{rideId}/receipt opens RideReceiptScreen

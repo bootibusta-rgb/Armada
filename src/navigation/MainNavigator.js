@@ -9,6 +9,7 @@ import VendorTabs from './VendorTabs';
 import CarRentalTabs from './CarRentalTabs';
 import AdminScreen from '../screens/admin/AdminScreen';
 import SettingsScreen from '../screens/shared/SettingsScreen';
+import SectionGuidesHubScreen from '../screens/shared/SectionGuidesHubScreen';
 import RiderFormScreen from '../screens/auth/RiderFormScreen';
 import DriverFormScreen from '../screens/auth/DriverFormScreen';
 import DriverActiveRideScreen from '../screens/driver/DriverActiveRideScreen';
@@ -58,6 +59,15 @@ export default function MainNavigator({ userProfile, demoMode }) {
           options={{
             headerShown: true,
             title: 'Settings',
+            ...headerOptions,
+          }}
+        />
+        <Stack.Screen
+          name="SectionGuidesHub"
+          component={SectionGuidesHubScreen}
+          options={{
+            headerShown: true,
+            title: 'Section guides',
             ...headerOptions,
           }}
         />

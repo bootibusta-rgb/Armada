@@ -1,17 +1,19 @@
-import React, { useCallback } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, Switch } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Sentry from '@sentry/react-native';
 import { isSentryEnabled } from '../../config/sentry';
 import { isProductionApp } from '../../config/appEnv';
 import { useTheme } from '../../context/ThemeContext';
 import { useAuth } from '../../context/AuthContext';
-import { withSectionGuide } from '../../components/withSectionGuide';
+import { SECTION_GUIDE_FAB_HIDDEN_KEY } from '../../constants/sectionGuidePrefs';
 
-function SettingsScreen({ navigation }) {
+export default function SettingsScreen({ navigation }) {
   const { theme, mode, setThemeMode, hasProfile } = useTheme();
   const { userProfile, switchRole, refreshUserProfile } = useAuth();
+  const [showFloatingHelp, setShowFloatingHelp] = useState(true);
   const roles = userProfile?.roles || (userProfile?.role ? [userProfile.role] : []);
   const canToggleDriverRider = roles.includes('rider') && roles.includes('driver');
   const currentRole = userProfile?.role || 'rider';
@@ -19,8 +21,24 @@ function SettingsScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       refreshUserProfile();
+      AsyncStorage.getItem(SECTION_GUIDE_FAB_HIDDEN_KEY).then((v) => {
+        setShowFloatingHelp(v !== '1');
+      });
     }, [refreshUserProfile])
   );
+
+  const onToggleFloatingHelp = async (value) => {
+    setShowFloatingHelp(value);
+    try {
+      if (value) {
+        await AsyncStorage.removeItem(SECTION_GUIDE_FAB_HIDDEN_KEY);
+      } else {
+        await AsyncStorage.setItem(SECTION_GUIDE_FAB_HIDDEN_KEY, '1');
+      }
+    } catch {
+      /* ignore */
+    }
+  };
 
   const testSentry = () => {
     if (!isSentryEnabled) {
@@ -85,6 +103,29 @@ function SettingsScreen({ navigation }) {
       )}
       {hasProfile && (
         <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primaryLight }]}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Help</Text>
+          <Text style={[styles.sectionSubtitle, { color: theme.colors.textSecondary }]}>
+            Turn off the floating ? button on Home, Coins, and other main tabs if it gets in your way. You can always read guides here.
+          </Text>
+          <View style={[styles.row, styles.switchRow]}>
+            <Ionicons name="help-circle-outline" size={24} color={theme.colors.primary} />
+            <Text style={[styles.rowText, { color: theme.colors.text }]}>Show floating help on screens</Text>
+            <Switch
+              value={showFloatingHelp}
+              onValueChange={onToggleFloatingHelp}
+              trackColor={{ false: theme.colors.textSecondary + '60', true: theme.colors.primary + '99' }}
+              thumbColor={showFloatingHelp ? theme.colors.primary : theme.colors.surface}
+            />
+          </View>
+          <TouchableOpacity style={styles.row} onPress={() => navigation.navigate('SectionGuidesHub')}>
+            <Ionicons name="book-outline" size={24} color={theme.colors.accent} />
+            <Text style={[styles.rowText, { color: theme.colors.text }]}>Section guides</Text>
+            <Ionicons name="chevron-forward" size={20} color={theme.colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
+      )}
+      {hasProfile && (
+        <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.primaryLight }]}>
           <Text style={[styles.sectionTitle, { color: theme.colors.text }]}>Appearance</Text>
           <TouchableOpacity
             style={[styles.row, mode === 'light' && styles.rowActive]}
@@ -130,8 +171,6 @@ function SettingsScreen({ navigation }) {
   );
 }
 
-export default withSectionGuide(SettingsScreen, 'settings');
-
 const styles = StyleSheet.create({
   container: { flex: 1 },
   title: { fontSize: 24, fontWeight: 'bold', padding: 24, paddingBottom: 8 },
@@ -141,6 +180,7 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12 },
   rowActive: { backgroundColor: 'rgba(124, 58, 237, 0.1)' },
   rowText: { flex: 1, fontSize: 16 },
+  switchRow: { justifyContent: 'space-between', gap: 8 },
   backBtn: { padding: 24, alignItems: 'center' },
   backText: { fontSize: 16 },
 });

@@ -245,3 +245,29 @@ export const SECTION_GUIDES = {
     ],
   },
 };
+
+/** Guide keys listed in Settings → Section guides, by active profile role. */
+export const SECTION_GUIDE_KEYS_BY_ROLE = {
+  rider: ['rider_home', 'rider_coins', 'rider_safety', 'settings'],
+  driver: [
+    'driver_dashboard',
+    'driver_fleet',
+    'driver_earnings',
+    'driver_gold',
+    'driver_corporate',
+    'driver_training',
+    'driver_profile',
+    'settings',
+  ],
+  corporate: [
+    'corporate_dashboard',
+    'corporate_book',
+    'corporate_employees',
+    'corporate_shifts',
+    'corporate_subscription',
+    'corporate_invoice',
+    'settings',
+  ],
+  vendor: ['vendor_dashboard', 'vendor_menu', 'vendor_orders', 'vendor_premium', 'settings'],
+  carRental: ['car_rental_home', 'car_rental_listing', 'car_rental_request', 'settings'],
+};

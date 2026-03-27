@@ -39,9 +39,9 @@ export const SECTION_GUIDES = {
     accent: '#F97316',
     accentDark: '#EA580C',
     steps: [
-      'See nearby ride requests and open bids.',
-      'Accept a bid to start the trip.',
-      'Stay online for better match chances.',
+      'Turn online — new rider requests pop up at the bottom and the Dashboard tab shows a badge count.',
+      'Use the quick sheet to Accept or Counter, or swipe the cards; Armada Coin rides show a wallet hint.',
+      'When you have an active trip, the green bar opens full ride details and payment status.',
     ],
   },
   driver_fleet: {

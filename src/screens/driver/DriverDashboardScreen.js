@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,11 +9,17 @@ import {
   Alert,
   TextInput,
   Modal,
+  Pressable,
+  Platform,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import MapView, { Marker } from 'react-native-maps';
+import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../context/ThemeContext';
+import { navigate as rootNavigate } from '../../navigation/navigationRef';
 import {
   subscribeToBiddingRides,
   addBid,
@@ -29,8 +35,9 @@ import { withSectionGuide } from '../../components/withSectionGuide';
 
 const SUBSCRIPTION_INFO_KEY = 'armada_driver_subscription_info_seen';
 
-function DriverDashboardScreen({ navigation }) {
+function DriverDashboardScreen() {
   const { theme } = useTheme();
+  const tabNavigation = useNavigation();
   const { userProfile } = useAuth();
   const [isOnline, setIsOnline] = useState(true);
   const [rides, setRides] = useState([]);
@@ -40,9 +47,12 @@ function DriverDashboardScreen({ navigation }) {
   const [bidsForRide, setBidsForRide] = useState([]);
   const [counterPrice, setCounterPrice] = useState('');
   const [goOfflineCountdown, setGoOfflineCountdown] = useState(null);
+  const [popupRide, setPopupRide] = useState(null);
   const lastActivityRef = useRef(Date.now());
   const goOfflineTimerRef = useRef(null);
   const autoOfflineRef = useRef(null);
+  const prevRideIdsRef = useRef(null);
+  const skippedPopupIdsRef = useRef(new Set());
 
   useEffect(() => {
     if (!isFirebaseReady) return;
@@ -57,11 +67,39 @@ function DriverDashboardScreen({ navigation }) {
           bidPrice: r.bidPrice,
           foodStop: r.foodStop,
           riderId: r.riderId,
+          useRedeem: !!r.useRedeem,
         }))
       );
     });
     return unsub;
   }, []);
+
+  useLayoutEffect(() => {
+    const n = rides.length;
+    tabNavigation.setOptions({
+      tabBarBadge: isOnline && n > 0 ? (n > 99 ? '99+' : n) : undefined,
+    });
+  }, [tabNavigation, rides.length, isOnline]);
+
+  useEffect(() => {
+    if (!isOnline) {
+      setPopupRide(null);
+      return;
+    }
+    const ids = rides.map((r) => r.id);
+    if (prevRideIdsRef.current === null) {
+      prevRideIdsRef.current = new Set(ids);
+      return;
+    }
+    const prev = prevRideIdsRef.current;
+    const newlyAdded = rides.filter(
+      (r) => !prev.has(r.id) && !skippedPopupIdsRef.current.has(r.id)
+    );
+    prevRideIdsRef.current = new Set(ids);
+    if (newlyAdded.length > 0) {
+      setPopupRide(newlyAdded[0]);
+    }
+  }, [rides, isOnline]);
 
   useEffect(() => {
     if (!isFirebaseReady || !userProfile?.id) return;
@@ -282,11 +320,37 @@ function DriverDashboardScreen({ navigation }) {
             />
           )}
         </View>
-        <Text style={styles.title}>Incoming bids</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.title}>Ride requests</Text>
+          {rides.length > 0 && (
+            <View style={styles.countPill}>
+              <Text style={styles.countPillText}>{rides.length} open</Text>
+            </View>
+          )}
+        </View>
+        {rides.length === 0 ? (
+          <View style={styles.emptyCard}>
+            <Ionicons
+              name={isOnline ? 'radio-outline' : 'moon-outline'}
+              size={36}
+              color={theme.colors.textSecondary}
+            />
+            <Text style={styles.emptyTitle}>{isOnline ? 'No open requests right now' : "You're offline"}</Text>
+            <Text style={styles.emptySub}>
+              {isOnline
+                ? 'Stay on this tab — new rider bids appear here and in a quick popup.'
+                : 'Go online to see incoming ride requests from nearby riders.'}
+            </Text>
+          </View>
+        ) : null}
         <FlatList
           data={rides}
           horizontal
+          showsHorizontalScrollIndicator={false}
           keyExtractor={(item) => item.id}
+          snapToInterval={292}
+          decelerationRate="fast"
+          contentContainerStyle={styles.rideListContent}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <Text style={styles.riderName}>{item.riderName}</Text>
@@ -294,6 +358,12 @@ function DriverDashboardScreen({ navigation }) {
                 {[item.pickup, ...(item.stops || []), item.dropoff].filter(Boolean).join(' → ')}
               </Text>
               <Text style={styles.price}>J${item.bidPrice}</Text>
+              {item.useRedeem && (
+                <View style={styles.coinsTag}>
+                  <Ionicons name="wallet-outline" size={14} color={theme.colors.secondary} />
+                  <Text style={styles.coinsTagText}>Rider using Armada Coins (J$100 off)</Text>
+                </View>
+              )}
               {item.foodStop && (
                 <View style={styles.foodStopBanner}>
                   <Text style={styles.foodStopText}>
@@ -326,10 +396,17 @@ function DriverDashboardScreen({ navigation }) {
         {activeRide && (
           <TouchableOpacity
             style={styles.activeRideBanner}
-            onPress={() => navigation.getRootParent?.()?.navigate('DriverActiveRide', { ride: activeRide })}
+            onPress={() => rootNavigate('DriverActiveRide', { ride: activeRide })}
+            activeOpacity={0.85}
           >
-            <Text style={styles.activeRideText}>Active ride: {activeRide.riderName || 'Rider'} → J${activeRide.finalFare || activeRide.bidPrice}</Text>
-            <Text style={styles.activeRideSub}>Tap to view</Text>
+            <Ionicons name="navigate-circle" size={22} color={theme.colors.white} style={{ marginRight: 8 }} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.activeRideText}>
+                Active ride: {activeRide.riderName || 'Rider'} · J${activeRide.finalFare || activeRide.bidPrice}
+              </Text>
+              <Text style={styles.activeRideSub}>Tap for details & payment status</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={22} color="rgba(255,255,255,0.9)" />
           </TouchableOpacity>
         )}
       </View>
@@ -348,6 +425,81 @@ function DriverDashboardScreen({ navigation }) {
           </View>
         </TouchableOpacity>
       </Modal>
+      <Modal visible={!!popupRide} transparent animationType="fade" onRequestClose={() => setPopupRide(null)}>
+        <Pressable style={styles.popupBackdrop} onPress={() => setPopupRide(null)}>
+          <View style={styles.popupSheet}>
+            <SafeAreaView edges={['bottom']} style={styles.popupSafe}>
+              <View style={styles.popupHandle} />
+              <View style={styles.popupHeader}>
+                <View style={styles.popupBadge}>
+                  <Text style={styles.popupBadgeText}>NEW REQUEST</Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => {
+                    if (popupRide?.id) skippedPopupIdsRef.current.add(popupRide.id);
+                    setPopupRide(null);
+                  }}
+                  hitSlop={12}
+                >
+                  <Ionicons name="close" size={26} color={theme.colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.popupRider}>{popupRide?.riderName}</Text>
+              <Text style={styles.popupPrice}>J${popupRide?.bidPrice}</Text>
+              <Text style={styles.popupRoute} numberOfLines={3}>
+                {[popupRide?.pickup, ...(popupRide?.stops || []), popupRide?.dropoff].filter(Boolean).join(' → ')}
+              </Text>
+              {popupRide?.useRedeem ? (
+                <View style={styles.popupCoinsRow}>
+                  <Ionicons name="wallet-outline" size={18} color={theme.colors.primary} />
+                  <Text style={styles.popupCoinsText}>Includes Armada Coins (rider pays J$100 less)</Text>
+                </View>
+              ) : null}
+              {popupRide?.foodStop ? (
+                <View style={styles.popupFood}>
+                  <Ionicons name="fast-food-outline" size={18} color={theme.colors.orange} />
+                  <Text style={styles.popupFoodText} numberOfLines={2}>
+                    Food: {popupRide.foodStop.vendorName}
+                    {popupRide.foodStop.itemsTotal > 0 ? ` · J$${popupRide.foodStop.itemsTotal}` : ''}
+                  </Text>
+                </View>
+              ) : null}
+              <View style={styles.popupActions}>
+                <TouchableOpacity
+                  style={styles.popupSecondaryBtn}
+                  onPress={() => {
+                    if (popupRide?.id) skippedPopupIdsRef.current.add(popupRide.id);
+                    setPopupRide(null);
+                  }}
+                >
+                  <Text style={styles.popupSecondaryText}>In list</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.popupCounterBtn}
+                  onPress={() => {
+                    const r = popupRide;
+                    setPopupRide(null);
+                    if (r) handleBid(r, 'counter');
+                  }}
+                >
+                  <Text style={styles.popupCounterText}>Counter</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.popupAcceptBtn}
+                  onPress={() => {
+                    const r = popupRide;
+                    setPopupRide(null);
+                    if (r) handleBid(r, 'accept');
+                  }}
+                >
+                  <Text style={styles.popupAcceptText}>Accept</Text>
+                </TouchableOpacity>
+              </View>
+            </SafeAreaView>
+          </View>
+        </Pressable>
+      </Modal>
+
       <Modal visible={!!selectedRide} transparent animationType="slide">
         <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setSelectedRide(null)}>
           <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
@@ -399,9 +551,38 @@ const createStyles = (theme) => StyleSheet.create({
   goOfflineText: { fontSize: 14, color: theme.colors.accent, fontWeight: '600' },
   cancelOfflineBtn: { paddingVertical: 4, paddingHorizontal: 12, backgroundColor: theme.colors.error + '30', borderRadius: 8 },
   cancelOfflineText: { fontSize: 13, color: theme.colors.error, fontWeight: 'bold' },
-  title: { fontSize: 16, color: theme.colors.textSecondary, marginBottom: 8 },
+  title: { fontSize: 16, color: theme.colors.textSecondary, fontWeight: '600' },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 10,
+  },
+  countPill: {
+    backgroundColor: theme.colors.primary + '22',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: theme.colors.primary,
+  },
+  countPillText: { fontSize: 13, fontWeight: '700', color: theme.colors.primary },
+  emptyCard: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    marginBottom: 12,
+    backgroundColor: theme.colors.background,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: theme.colors.primaryLight,
+    borderStyle: 'dashed',
+  },
+  emptyTitle: { fontSize: 16, fontWeight: '700', color: theme.colors.text, marginTop: 10 },
+  emptySub: { fontSize: 13, color: theme.colors.textSecondary, textAlign: 'center', marginTop: 6, lineHeight: 18 },
+  rideListContent: { paddingBottom: 8 },
   card: {
-    width: 200,
+    width: 280,
     backgroundColor: theme.colors.surface,
     padding: 12,
     borderRadius: 12,
@@ -412,6 +593,16 @@ const createStyles = (theme) => StyleSheet.create({
   riderName: { fontSize: 16, fontWeight: 'bold', color: theme.colors.primary },
   route: { fontSize: 12, color: theme.colors.textSecondary, marginVertical: 4 },
   price: { fontSize: 18, fontWeight: 'bold', color: theme.colors.accent, marginBottom: 8 },
+  coinsTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: theme.colors.secondary + '18',
+    padding: 8,
+    borderRadius: 8,
+    marginBottom: 8,
+  },
+  coinsTagText: { flex: 1, fontSize: 11, fontWeight: '600', color: theme.colors.primary },
   foodStopBanner: {
     backgroundColor: theme.colors.orange + '25',
     padding: 8,
@@ -435,12 +626,110 @@ const createStyles = (theme) => StyleSheet.create({
   acceptBtn: { flex: 1, backgroundColor: theme.colors.success, padding: 6, borderRadius: 6, alignItems: 'center' },
   btnText: { color: theme.colors.white, fontSize: 12, fontWeight: 'bold' },
   activeRideBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: theme.colors.success,
-    padding: 12,
-    borderRadius: 8,
+    padding: 14,
+    borderRadius: 12,
     marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  popupBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    justifyContent: 'flex-end',
+  },
+  popupSheet: {
+    backgroundColor: theme.colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -4 },
+        shadowOpacity: 0.15,
+        shadowRadius: 12,
+      },
+      android: { elevation: 16 },
+    }),
+  },
+  popupSafe: { paddingHorizontal: 20, paddingBottom: 12 },
+  popupHandle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: theme.colors.primaryLight,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  popupHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  popupBadge: {
+    backgroundColor: theme.colors.orange,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  popupBadgeText: { color: theme.colors.white, fontSize: 11, fontWeight: '800', letterSpacing: 0.5 },
+  popupRider: { fontSize: 22, fontWeight: '800', color: theme.colors.primary },
+  popupPrice: { fontSize: 32, fontWeight: '800', color: theme.colors.accent, marginTop: 4 },
+  popupRoute: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 10, lineHeight: 20 },
+  popupCoinsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 14,
+    padding: 12,
+    backgroundColor: theme.colors.primary + '12',
+    borderRadius: 10,
+  },
+  popupCoinsText: { flex: 1, fontSize: 13, fontWeight: '600', color: theme.colors.primary },
+  popupFood: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    padding: 10,
+    backgroundColor: theme.colors.orange + '15',
+    borderRadius: 10,
+  },
+  popupFoodText: { flex: 1, fontSize: 13, color: theme.colors.orange, fontWeight: '600' },
+  popupActions: { flexDirection: 'row', gap: 10, marginTop: 20 },
+  popupSecondaryBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: theme.colors.background,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: theme.colors.primaryLight,
+  },
+  popupSecondaryText: { fontWeight: '700', color: theme.colors.textSecondary, fontSize: 14 },
+  popupCounterBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: theme.colors.secondary,
     alignItems: 'center',
   },
+  popupCounterText: { fontWeight: '800', color: theme.colors.white, fontSize: 14 },
+  popupAcceptBtn: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: theme.colors.success,
+    alignItems: 'center',
+  },
+  popupAcceptText: { fontWeight: '800', color: theme.colors.white, fontSize: 14 },
   activeRideText: { color: theme.colors.white, fontWeight: 'bold', fontSize: 14 },
   activeRideSub: { color: 'rgba(255,255,255,0.9)', fontSize: 12, marginTop: 2 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },

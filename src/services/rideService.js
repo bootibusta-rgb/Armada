@@ -245,10 +245,17 @@ export const subscribeToBiddingRides = (callback) => {
     where('status', '==', 'bidding'),
     orderBy('createdAt', 'desc')
   );
-  return onSnapshot(q, (snap) => {
-    const rides = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
-    callback(rides);
-  });
+  return onSnapshot(
+    q,
+    (snap) => {
+      const rides = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      callback(rides);
+    },
+    (err) => {
+      console.warn('[rides] bidding listener error:', err?.code || err?.message);
+      callback([]);
+    }
+  );
 };
 
 /** Notify rider when driver is approaching (real ETA, e.g. 2 min). Called from driver app. */

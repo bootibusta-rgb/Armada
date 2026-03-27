@@ -33,22 +33,27 @@ export function AuthProvider({ children }) {
         setUser(firebaseUser);
         if (firebaseUser) {
           try {
-            // Sync RNFB auth to Firebase JS SDK so Firestore has permissions
-            if (isFirebaseReady && functions) {
-              const { getIdToken } = require('@react-native-firebase/auth');
-              const idToken = await getIdToken(firebaseUser, false);
-              if (demoModeRef.current) {
-                setLoading(false);
-                return;
-              }
-              const getCustomToken = httpsCallable(functions, 'getCustomToken');
-              const { data } = await getCustomToken({ idToken });
-              if (demoModeRef.current) {
-                setLoading(false);
-                return;
-              }
-              if (data?.customToken) {
-                await signInWithCustomToken(auth, data.customToken);
+            // Optional: sync RNFB → Firebase JS SDK for web/rules that expect JS auth.
+            // Must not block profile load: if this fails, native auth + RN Firestore still work.
+            if (isFirebaseReady && functions && auth) {
+              try {
+                const { getIdToken } = require('@react-native-firebase/auth');
+                const idToken = await getIdToken(firebaseUser, false);
+                if (demoModeRef.current) {
+                  setLoading(false);
+                  return;
+                }
+                const getCustomToken = httpsCallable(functions, 'getCustomToken');
+                const { data } = await getCustomToken({ idToken });
+                if (demoModeRef.current) {
+                  setLoading(false);
+                  return;
+                }
+                if (data?.customToken) {
+                  await signInWithCustomToken(auth, data.customToken);
+                }
+              } catch (syncErr) {
+                console.warn('[Auth] JS token sync failed; continuing with native session', syncErr?.message || syncErr);
               }
             }
             if (demoModeRef.current) {
@@ -69,7 +74,12 @@ export function AuthProvider({ children }) {
             if (token) savePushToken(firebaseUser.uid, token);
           } catch (e) {
             if (!demoModeRef.current) {
-              setUserProfile(null);
+              try {
+                const profile = await getUserProfile(firebaseUser.uid);
+                setUserProfile(profile);
+              } catch {
+                setUserProfile(null);
+              }
             }
           }
         } else {

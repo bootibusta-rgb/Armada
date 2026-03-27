@@ -19,9 +19,9 @@ export const SECTION_GUIDES = {
     accent: '#FACC15',
     accentDark: '#CA8A04',
     steps: [
-      'New riders get 100 coins (J$100 ride credit). 1 coin = J$1 toward redemption.',
-      'Earn more: 1 coin per J$100 spent on rides.',
-      'Redeem 100 coins for J$100 off — toggle the option on Home before you book.',
+      'New riders get 100 coins (J$100 off one ride). You can redeem only 3 times per calendar month, no matter how many coins you have.',
+      'Earn without limit: 1 coin per J$100 spent on rides. Only redemptions are capped; balances carry over.',
+      'Redeem 100 coins for J$100 off — toggle on Home before you book. Count resets on the 1st of each month.',
     ],
   },
   rider_safety: {

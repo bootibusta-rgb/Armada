@@ -18,7 +18,7 @@ import { createRideRequest } from '../../services/rideService';
 import VoiceBiddingButton from '../../components/VoiceBiddingButton';
 import { haversineKm } from '../../utils/haversine';
 import { getDistanceBasedFare, getVendorsNearRoute } from '../../utils/fareUtils';
-import { REDEEM_DISCOUNT } from '../../services/iriCoinsService';
+import { REDEEM_DISCOUNT, getRedemptionSummary, canApplyCoinRedemption } from '../../services/iriCoinsService';
 import { DEFAULT_RIDER_COINS_FALLBACK } from '../../constants/armadaCoins';
 import { validatePromo, getPromoDiscount } from '../../services/promoService';
 import { subscribeToVendors } from '../../services/vendorService';
@@ -172,7 +172,15 @@ function RiderHomeScreen({ navigation, route }) {
   };
 
   const coins = userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK;
-  const canRedeem = coins >= 100;
+  const redemption = getRedemptionSummary(userProfile || {});
+  const hasRedeemBundle = coins >= 100;
+  const canRedeem = canApplyCoinRedemption(userProfile, coins);
+
+  useEffect(() => {
+    if (!canApplyCoinRedemption(userProfile, coins) && useRedeem) {
+      setUseRedeem(false);
+    }
+  }, [userProfile, coins, useRedeem]);
 
   const region = {
     latitude: 18.0179,
@@ -372,6 +380,9 @@ function RiderHomeScreen({ navigation, route }) {
       <View style={styles.overlay}>
         <OfflineBanner visible={isOffline} showCached={isOffline && routeHistory.length > 0} />
         <Text style={styles.coins}>🇯🇲 Armada Coins: {userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK}</Text>
+        <Text style={styles.coinsRedeemMeta}>
+          Redemptions: {redemption.remaining} of {redemption.limit} left this month (resets on the 1st). You can earn unlimited coins; only redemptions are capped at 3/month.
+        </Text>
         <ScrollView
           style={styles.cardScroll}
           contentContainerStyle={styles.cardScrollContent}
@@ -492,15 +503,27 @@ function RiderHomeScreen({ navigation, route }) {
               </TouchableOpacity>
             </>
           )}
-          {canRedeem && (
-            <TouchableOpacity
-              style={[styles.redeemToggle, useRedeem && styles.redeemToggleActive]}
-              onPress={() => setUseRedeem(!useRedeem)}
-            >
-              <Text style={styles.redeemToggleText}>
-                {useRedeem ? '✓ ' : ''}Use 100 coins for J$100 off
-              </Text>
-            </TouchableOpacity>
+          {hasRedeemBundle && (
+            <View style={{ marginBottom: 8 }}>
+              <TouchableOpacity
+                style={[
+                  styles.redeemToggle,
+                  useRedeem && canRedeem && styles.redeemToggleActive,
+                  !canRedeem && styles.redeemToggleDisabled,
+                ]}
+                onPress={() => canRedeem && setUseRedeem(!useRedeem)}
+                activeOpacity={canRedeem ? 0.7 : 1}
+              >
+                <Text style={[styles.redeemToggleText, !canRedeem && styles.redeemToggleTextMuted]}>
+                  {useRedeem && canRedeem ? '✓ ' : ''}Use 100 coins for J$100 off
+                </Text>
+              </TouchableOpacity>
+              {!canRedeem && (
+                <Text style={styles.redeemLimitHint}>
+                  You’ve used all 3 redemptions this month. Coins keep accumulating — you can redeem again next month.
+                </Text>
+              )}
+            </View>
           )}
           <View style={styles.promoRow}>
             <TextInput
@@ -640,8 +663,14 @@ const createStyles = (theme) => StyleSheet.create({
   coins: {
     color: theme.colors.secondary,
     fontWeight: 'bold',
-    marginBottom: 8,
+    marginBottom: 4,
     fontSize: 14,
+  },
+  coinsRedeemMeta: {
+    fontSize: 11,
+    color: theme.colors.textSecondary,
+    marginBottom: 10,
+    lineHeight: 16,
   },
   recentRoutes: { marginBottom: 12 },
   recentLabel: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 6 },
@@ -752,7 +781,15 @@ const createStyles = (theme) => StyleSheet.create({
     borderColor: theme.colors.green,
     backgroundColor: theme.colors.green + '20',
   },
+  redeemToggleDisabled: { opacity: 0.55 },
   redeemToggleText: { fontSize: 14, color: theme.colors.primary, fontWeight: '600' },
+  redeemToggleTextMuted: { color: theme.colors.textSecondary },
+  redeemLimitHint: {
+    fontSize: 12,
+    color: theme.colors.textSecondary,
+    marginTop: 6,
+    lineHeight: 17,
+  },
   promoRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   promoInput: { flex: 1, backgroundColor: theme.colors.surface, borderRadius: 8, padding: 12, fontSize: 14, borderWidth: 2, borderColor: theme.colors.primaryLight },
   promoBtn: { paddingHorizontal: 16, justifyContent: 'center', backgroundColor: theme.colors.primary, borderRadius: 8 },

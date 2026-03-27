@@ -12,7 +12,7 @@ export const DEFAULT_ANNOUNCEMENTS = [
   {
     id: '2',
     title: 'Armada Coins',
-    body: 'New riders get 100 Armada coins (J$100 credit). Earn 1 coin per J$100 spent. Redeem 100 coins for J$100 off. Tap the Coins tab for your balance.',
+    body: 'New riders get 100 Armada coins (J$100 off). Earn 1 coin per J$100 spent. You can redeem 100 coins for J$100 off up to 3 times per month — balance can be higher; only uses are capped. Tap Coins for your balance.',
     type: 'promo',
     date: '2025-03-05',
   },

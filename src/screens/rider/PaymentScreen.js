@@ -28,7 +28,13 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { processCashFlag, processCardPayment } from '../../services/paymentService';
-import { earnCoins, redeemCoins, REDEEM_DISCOUNT } from '../../services/iriCoinsService';
+import {
+  earnCoins,
+  redeemCoins,
+  REDEEM_DISCOUNT,
+  canApplyCoinRedemption,
+  getCurrentRedemptionMonthKey,
+} from '../../services/iriCoinsService';
 import { DEFAULT_RIDER_COINS_FALLBACK } from '../../constants/armadaCoins';
 import { submitRating } from '../../services/ratingService';
 import { analyticsEvents } from '../../services/analyticsService';
@@ -42,8 +48,12 @@ export default function PaymentScreen({ route, navigation }) {
   const { userProfile, setUserProfile, refreshUserProfile, demoMode } = useAuth();
   const styles = createStyles(theme);
 
+  const coinsBal = userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK;
+  const redeemEligible = canApplyCoinRedemption(userProfile, coinsBal);
+  const effectiveUseRedeem = !!useRedeem && redeemEligible;
+
   // Agreed fare (stored from ride agreement) - no partials allowed
-  const agreedFare = (fare || 1500) - (useRedeem ? REDEEM_DISCOUNT : 0);
+  const agreedFare = (fare || 1500) - (effectiveUseRedeem ? REDEEM_DISCOUNT : 0);
 
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [loading, setLoading] = useState(false);
@@ -81,12 +91,23 @@ export default function PaymentScreen({ route, navigation }) {
 
   const completeRide = (amountPaid, method = paymentMethod) => {
     if (demoMode) {
-      let newCoins = (userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK) + Math.floor(amountPaid / 100);
-      if (useRedeem) newCoins -= 100;
-      setUserProfile({ ...userProfile, irieCoins: Math.max(0, newCoins) });
+      let newCoins = coinsBal + Math.floor(amountPaid / 100);
+      let nextProfile = { ...userProfile };
+      if (effectiveUseRedeem) {
+        newCoins -= 100;
+        const monthKey = getCurrentRedemptionMonthKey();
+        const storedMonth = userProfile?.coinRedemptionMonth;
+        let count = storedMonth === monthKey ? (userProfile?.coinRedemptionCount ?? 0) : 0;
+        nextProfile = {
+          ...nextProfile,
+          coinRedemptionMonth: monthKey,
+          coinRedemptionCount: count + 1,
+        };
+      }
+      setUserProfile({ ...nextProfile, irieCoins: Math.max(0, newCoins) });
     } else if (userProfile?.id) {
       earnCoins(userProfile.id, amountPaid).catch(() => {});
-      if (useRedeem) redeemCoins(userProfile.id).catch(() => {});
+      if (effectiveUseRedeem) redeemCoins(userProfile.id).catch(() => {});
       refreshUserProfile();
     }
     setReceiptParams({
@@ -159,8 +180,13 @@ export default function PaymentScreen({ route, navigation }) {
         <View style={styles.fareCard}>
           <Text style={styles.fareLabel}>Fare</Text>
           <Text style={styles.fare}>{agreedFare} JMD</Text>
-          {useRedeem && (
+          {effectiveUseRedeem && (
             <Text style={styles.redeemBadge}>100 coins redeemed for J$100 off</Text>
+          )}
+          {useRedeem && !redeemEligible && (
+            <Text style={styles.redeemWarn}>
+              Coin discount not applied — you’ve used all 3 redemptions this month. Fare is without the J$100 coin discount.
+            </Text>
           )}
         </View>
 
@@ -254,6 +280,7 @@ const createStyles = (theme) => StyleSheet.create({
   fareLabel: { fontSize: 12, color: theme.colors.textSecondary, marginBottom: 4 },
   fare: { fontSize: 36, fontWeight: 'bold', color: theme.colors.accent },
   redeemBadge: { fontSize: 12, color: theme.colors.success, marginTop: 8 },
+  redeemWarn: { fontSize: 12, color: theme.colors.error, marginTop: 10, textAlign: 'center', lineHeight: 17 },
   driver: { fontSize: 14, color: theme.colors.textSecondary, textAlign: 'center', marginBottom: 24 },
   options: { flexDirection: 'row', gap: 16, marginBottom: 24 },
   option: {

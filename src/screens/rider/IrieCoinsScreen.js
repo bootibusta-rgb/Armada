@@ -4,12 +4,15 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { withSectionGuide } from '../../components/withSectionGuide';
-import { DEFAULT_RIDER_COINS_FALLBACK } from '../../constants/armadaCoins';
+import { DEFAULT_RIDER_COINS_FALLBACK, MAX_COIN_REDEMPTIONS_PER_MONTH } from '../../constants/armadaCoins';
+import { getRedemptionSummary, canApplyCoinRedemption } from '../../services/iriCoinsService';
 
 function IrieCoinsScreen() {
   const { theme } = useTheme();
   const { userProfile, refreshUserProfile } = useAuth();
   const coins = userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK;
+  const redemption = getRedemptionSummary(userProfile || {});
+  const canRedeemNow = canApplyCoinRedemption(userProfile, coins);
   const styles = createStyles(theme);
 
   useFocusEffect(
@@ -30,23 +33,39 @@ function IrieCoinsScreen() {
       </View>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Redeem</Text>
-        <Text style={styles.cardText}>100 coins = J$100 off your next ride</Text>
+        <Text style={styles.cardText}>
+          Each redemption uses 100 coins for J$100 off one ride. You can redeem at most {MAX_COIN_REDEMPTIONS_PER_MONTH} times per
+          calendar month — even if your balance is higher. Unused redemptions don’t roll over; the cap resets on the 1st.
+        </Text>
+        <Text style={styles.cardHighlight}>
+          This month: {redemption.remaining} of {redemption.limit} redemptions left · {redemption.used} used
+        </Text>
       </View>
       <TouchableOpacity
-        style={[styles.redeemBtn, coins < 100 && styles.redeemBtnDisabled]}
+        style={[styles.redeemBtn, !canRedeemNow && styles.redeemBtnDisabled]}
         onPress={() =>
-          coins >= 100
+          canRedeemNow
             ? Alert.alert(
                 'Redeem at checkout',
-                'Use 100 coins for J$100 off when booking your next ride. Toggle the coins option on the home screen before you book.',
+                `On Home, turn on “Use 100 coins for J$100 off” before you request a ride. You have ${redemption.remaining} redemption${redemption.remaining === 1 ? '' : 's'} left this month (${MAX_COIN_REDEMPTIONS_PER_MONTH} max).`,
                 [{ text: 'OK' }]
               )
-            : null
+            : coins < 100
+              ? null
+              : Alert.alert(
+                  'Monthly redemption limit',
+                  `You’ve used all ${MAX_COIN_REDEMPTIONS_PER_MONTH} coin redemptions this month. Your balance (${coins}) still grows — try again next month.`,
+                  [{ text: 'OK' }]
+                )
         }
         disabled={coins < 100}
       >
         <Text style={styles.redeemText}>
-          {coins >= 100 ? 'How to redeem' : 'Need 100 coins to redeem'}
+          {!canRedeemNow && coins >= 100
+            ? 'Monthly limit reached'
+            : coins >= 100
+              ? 'How to redeem'
+              : 'Need 100 coins to redeem'}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -77,6 +96,12 @@ const createStyles = (theme) => StyleSheet.create({
   },
   cardTitle: { fontSize: 18, fontWeight: 'bold', color: theme.colors.primary },
   cardText: { fontSize: 14, color: theme.colors.textSecondary, marginTop: 4 },
+  cardHighlight: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: theme.colors.primary,
+    marginTop: 12,
+  },
   redeemBtn: {
     marginTop: 24,
     backgroundColor: theme.colors.primary,

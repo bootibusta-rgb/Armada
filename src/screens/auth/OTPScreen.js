@@ -13,7 +13,7 @@ import { isProductionApp } from '../../config/appEnv';
 
 export default function OTPScreen({ route, navigation }) {
   const { theme } = useTheme();
-  const { confirmation, phone, demo } = route.params || {};
+  const { phone, demo } = route.params || {};
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -32,7 +32,7 @@ export default function OTPScreen({ route, navigation }) {
     }
     setLoading(true);
     try {
-      await verifyOTP(confirmation, code);
+      await verifyOTP(code);
       navigation.replace('RoleSelect');
     } catch (e) {
       Alert.alert('Error', e.message || 'Invalid OTP');

@@ -38,8 +38,8 @@ export default function PhoneAuthScreen({ navigation }) {
     }
     setLoading(true);
     try {
-      const confirmation = await sendOTP(phone);
-      navigation.navigate('OTP', { confirmation, phone });
+      await sendOTP(phone);
+      navigation.navigate('OTP', { phone });
     } catch (e) {
       if (isProductionApp) {
         Alert.alert('Error', e.message || 'Failed to send OTP. Check your number and try again.');

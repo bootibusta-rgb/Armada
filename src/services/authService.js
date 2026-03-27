@@ -11,21 +11,22 @@ let recaptchaVerifier = null;
 const isWeb = Platform.OS === 'web';
 
 // React Native Firebase - for real phone OTP on native (requires dev build, not Expo Go)
-// Use modular API (getFirestore, doc, setDoc, getDoc) to avoid deprecation warnings
-let rnAuth = null;
+let rnAuthNamespace = null;
 let rnFirestoreModular = null;
 if (!isWeb) {
   try {
-    const rnfAuth = require('@react-native-firebase/auth').default;
+    rnAuthNamespace = require('@react-native-firebase/auth').default;
     const rnfFirestore = require('@react-native-firebase/firestore');
-    rnAuth = rnfAuth;
     rnFirestoreModular = rnfFirestore;
   } catch (e) {
     // RNFB not available (e.g. Expo Go)
   }
 }
 
-const useNativeAuth = !isWeb && !!rnAuth;
+const useNativeAuth = !isWeb && !!rnAuthNamespace;
+
+/** Phone confirmation objects are not serializable — keep them off navigation params. */
+let pendingPhoneConfirmation = null;
 
 export const initRecaptcha = (containerId) => {
   if (!isWeb) return null;
@@ -41,20 +42,30 @@ export const initRecaptcha = (containerId) => {
 };
 
 export const sendOTP = async (phoneNumber) => {
+  const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber}`;
   if (useNativeAuth) {
-    const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber}`;
-    return rnAuth().signInWithPhoneNumber(formattedPhone);
+    const { getAuth, signInWithPhoneNumber: modularSignIn } = require('@react-native-firebase/auth');
+    pendingPhoneConfirmation = await modularSignIn(getAuth(), formattedPhone);
+    return;
   }
   if (!isFirebaseReady || !auth) throw new Error('Firebase not configured. Use Demo Mode.');
   if (!isWeb) throw new Error('Phone OTP requires a development build. Use Expo Go? Try Demo Mode.');
   const verifier = initRecaptcha();
-  const formattedPhone = phoneNumber.startsWith('+') ? phoneNumber : `+1${phoneNumber}`;
-  return signInWithPhoneNumber(auth, formattedPhone, verifier);
+  pendingPhoneConfirmation = await signInWithPhoneNumber(auth, formattedPhone, verifier);
 };
 
-export const verifyOTP = async (confirmation, code) => {
-  const result = await confirmation.confirm(code);
-  return result.user;
+export const verifyOTP = async (code) => {
+  if (!pendingPhoneConfirmation) {
+    throw new Error('No pending verification. Go back and request a new code.');
+  }
+  const result = await pendingPhoneConfirmation.confirm(code);
+  pendingPhoneConfirmation = null;
+  return result?.user != null ? result.user : result;
+};
+
+/** Call on sign-out so stale confirmations cannot be verified later. */
+export const clearPendingPhoneAuth = () => {
+  pendingPhoneConfirmation = null;
 };
 
 export const createUserProfile = async (uid, data) => {
@@ -102,10 +113,10 @@ export const getUserProfile = async (uid) => {
  */
 export function getCurrentAuthUid(contextUser) {
   if (contextUser?.uid) return contextUser.uid;
-  if (useNativeAuth && rnAuth) {
+  if (useNativeAuth) {
     try {
-      const uid = rnAuth().currentUser?.uid;
-      if (uid) return uid;
+      const { getAuth } = require('@react-native-firebase/auth');
+      return getAuth().currentUser?.uid ?? null;
     } catch (e) {
       /* ignore */
     }
@@ -115,9 +126,10 @@ export function getCurrentAuthUid(contextUser) {
 }
 
 export const signOut = async () => {
-  if (useNativeAuth && rnAuth) {
-    await rnAuth().signOut();
-    // Also sign out from Firebase JS SDK (we synced auth via custom token)
+  clearPendingPhoneAuth();
+  if (useNativeAuth) {
+    const { getAuth, signOut: modularSignOut } = require('@react-native-firebase/auth');
+    await modularSignOut(getAuth());
     if (auth) {
       try {
         await firebaseSignOut(auth);

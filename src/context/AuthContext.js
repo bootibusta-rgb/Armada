@@ -35,7 +35,8 @@ export function AuthProvider({ children }) {
           try {
             // Sync RNFB auth to Firebase JS SDK so Firestore has permissions
             if (isFirebaseReady && functions) {
-              const idToken = await firebaseUser.getIdToken();
+              const { getIdToken } = require('@react-native-firebase/auth');
+              const idToken = await getIdToken(firebaseUser, false);
               if (demoModeRef.current) {
                 setLoading(false);
                 return;

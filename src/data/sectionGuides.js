@@ -19,9 +19,9 @@ export const SECTION_GUIDES = {
     accent: '#FACC15',
     accentDark: '#CA8A04',
     steps: [
-      'Earn coins from rides and promos.',
-      'Redeem rewards when offers appear.',
-      'Your balance stays on your profile.',
+      'New riders get 100 coins (J$100 ride credit). 1 coin = J$1 toward redemption.',
+      'Earn more: 1 coin per J$100 spent on rides.',
+      'Redeem 100 coins for J$100 off — toggle the option on Home before you book.',
     ],
   },
   rider_safety: {

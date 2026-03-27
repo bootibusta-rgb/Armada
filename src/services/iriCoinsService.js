@@ -2,8 +2,8 @@ import { doc, getDoc, updateDoc, increment } from 'firebase/firestore';
 import { db, isFirebaseReady } from '../config/firebase';
 
 const EARN_RATE = 1; // 1 Armada coin per J$100 spent
-const REDEEM_RATE = 100; // 100 coins = J$50 off
-export const REDEEM_DISCOUNT = 50; // J$50 off
+const REDEEM_RATE = 100; // bundle: redeem this many coins at once
+export const REDEEM_DISCOUNT = 100; // J$100 off (1 coin = J$1 toward this bundle)
 
 export const earnCoins = async (userId, fareAmount) => {
   if (!isFirebaseReady || !db) return 0;

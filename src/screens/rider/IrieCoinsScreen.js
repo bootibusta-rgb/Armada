@@ -4,11 +4,12 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import { withSectionGuide } from '../../components/withSectionGuide';
+import { DEFAULT_RIDER_COINS_FALLBACK } from '../../constants/armadaCoins';
 
 function IrieCoinsScreen() {
   const { theme } = useTheme();
   const { userProfile, refreshUserProfile } = useAuth();
-  const coins = userProfile?.irieCoins ?? 150;
+  const coins = userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK;
   const styles = createStyles(theme);
 
   useFocusEffect(
@@ -22,14 +23,14 @@ function IrieCoinsScreen() {
       <Text style={styles.emoji}>🇯🇲</Text>
       <Text style={styles.title}>Armada Coins</Text>
       <Text style={styles.balance}>{coins}</Text>
-      <Text style={styles.subtitle}>Loyalty points – earn & redeem</Text>
+      <Text style={styles.subtitle}>1 Armada coin = J$1 credit • New riders start with 100 coins (J$100)</Text>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Earn</Text>
         <Text style={styles.cardText}>1 coin per J$100 spent on rides</Text>
       </View>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>Redeem</Text>
-        <Text style={styles.cardText}>100 coins = J$50 off your next ride</Text>
+        <Text style={styles.cardText}>100 coins = J$100 off your next ride</Text>
       </View>
       <TouchableOpacity
         style={[styles.redeemBtn, coins < 100 && styles.redeemBtnDisabled]}
@@ -37,7 +38,7 @@ function IrieCoinsScreen() {
           coins >= 100
             ? Alert.alert(
                 'Redeem at checkout',
-                'Use 100 coins for J$50 off when booking your next ride. Toggle "Use 100 coins for J$50 off" on the home screen.',
+                'Use 100 coins for J$100 off when booking your next ride. Toggle the coins option on the home screen before you book.',
                 [{ text: 'OK' }]
               )
             : null

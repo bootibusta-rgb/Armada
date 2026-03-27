@@ -15,6 +15,7 @@ import { updateUserProfile, getUserProfile, getCurrentAuthUid } from '../../serv
 import { useTheme } from '../../context/ThemeContext';
 import IdVerificationSection from '../../components/IdVerificationSection';
 import { uploadUserIdDocument, uploadUserSelfieWithId } from '../../services/identityVerificationService';
+import { RIDER_WELCOME_COINS } from '../../constants/armadaCoins';
 
 export default function RiderFormScreen({ route, navigation }) {
   const { theme } = useTheme();
@@ -59,7 +60,7 @@ export default function RiderFormScreen({ route, navigation }) {
           phone: phone.trim() || undefined,
           idType,
           idNumber: idNumber.trim(),
-          irieCoins: 150,
+          irieCoins: RIDER_WELCOME_COINS,
         });
         return;
       }
@@ -82,7 +83,7 @@ export default function RiderFormScreen({ route, navigation }) {
         idSelfieWithIdUrl,
         idDocumentUploadedAt: new Date().toISOString(),
         idVerified: true,
-        irieCoins: existing?.irieCoins ?? 150,
+        irieCoins: existing?.irieCoins ?? RIDER_WELCOME_COINS,
       });
       setUserProfile({
         id: uid,
@@ -96,7 +97,7 @@ export default function RiderFormScreen({ route, navigation }) {
         idNumber: idNumber.trim(),
         idDocumentUrl,
         idSelfieWithIdUrl,
-        irieCoins: existing?.irieCoins ?? 150,
+        irieCoins: existing?.irieCoins ?? RIDER_WELCOME_COINS,
       });
     } catch (e) {
       Alert.alert('Error', e.message || 'Failed to save');

@@ -29,6 +29,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
 import { processCashFlag, processCardPayment } from '../../services/paymentService';
 import { earnCoins, redeemCoins, REDEEM_DISCOUNT } from '../../services/iriCoinsService';
+import { DEFAULT_RIDER_COINS_FALLBACK } from '../../constants/armadaCoins';
 import { submitRating } from '../../services/ratingService';
 import { analyticsEvents } from '../../services/analyticsService';
 import { useTheme } from '../../context/ThemeContext';
@@ -80,7 +81,7 @@ export default function PaymentScreen({ route, navigation }) {
 
   const completeRide = (amountPaid, method = paymentMethod) => {
     if (demoMode) {
-      let newCoins = (userProfile?.irieCoins ?? 150) + Math.floor(amountPaid / 100);
+      let newCoins = (userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK) + Math.floor(amountPaid / 100);
       if (useRedeem) newCoins -= 100;
       setUserProfile({ ...userProfile, irieCoins: Math.max(0, newCoins) });
     } else if (userProfile?.id) {
@@ -159,7 +160,7 @@ export default function PaymentScreen({ route, navigation }) {
           <Text style={styles.fareLabel}>Fare</Text>
           <Text style={styles.fare}>{agreedFare} JMD</Text>
           {useRedeem && (
-            <Text style={styles.redeemBadge}>100 coins redeemed for J$50 off</Text>
+            <Text style={styles.redeemBadge}>100 coins redeemed for J$100 off</Text>
           )}
         </View>
 

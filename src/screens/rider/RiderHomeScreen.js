@@ -19,6 +19,7 @@ import VoiceBiddingButton from '../../components/VoiceBiddingButton';
 import { haversineKm } from '../../utils/haversine';
 import { getDistanceBasedFare, getVendorsNearRoute } from '../../utils/fareUtils';
 import { REDEEM_DISCOUNT } from '../../services/iriCoinsService';
+import { DEFAULT_RIDER_COINS_FALLBACK } from '../../constants/armadaCoins';
 import { validatePromo, getPromoDiscount } from '../../services/promoService';
 import { subscribeToVendors } from '../../services/vendorService';
 import { getRouteHistory, addRoute } from '../../services/routeHistoryService';
@@ -170,7 +171,7 @@ function RiderHomeScreen({ navigation, route }) {
     setFoodStopModalVisible(true);
   };
 
-  const coins = userProfile?.irieCoins ?? 150;
+  const coins = userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK;
   const canRedeem = coins >= 100;
 
   const region = {
@@ -370,7 +371,7 @@ function RiderHomeScreen({ navigation, route }) {
       )}
       <View style={styles.overlay}>
         <OfflineBanner visible={isOffline} showCached={isOffline && routeHistory.length > 0} />
-        <Text style={styles.coins}>🇯🇲 Armada Coins: {userProfile?.irieCoins ?? 150}</Text>
+        <Text style={styles.coins}>🇯🇲 Armada Coins: {userProfile?.irieCoins ?? DEFAULT_RIDER_COINS_FALLBACK}</Text>
         <ScrollView
           style={styles.cardScroll}
           contentContainerStyle={styles.cardScrollContent}
@@ -497,7 +498,7 @@ function RiderHomeScreen({ navigation, route }) {
               onPress={() => setUseRedeem(!useRedeem)}
             >
               <Text style={styles.redeemToggleText}>
-                {useRedeem ? '✓ ' : ''}Use 100 coins for J$50 off
+                {useRedeem ? '✓ ' : ''}Use 100 coins for J$100 off
               </Text>
             </TouchableOpacity>
           )}

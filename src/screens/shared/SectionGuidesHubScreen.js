@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 import SectionGuideModal from '../../components/SectionGuideModal';
 import { SECTION_GUIDES, SECTION_GUIDE_KEYS_BY_ROLE } from '../../data/sectionGuides';
-
-const dismissedKey = (id) => `armada_section_guide_dismissed_${id}`;
+import { useLocale } from '../../context/LocaleContext';
+import { persistSectionGuideDismissed } from '../../constants/sectionGuidePrefs';
 
 export default function SectionGuidesHubScreen() {
   const { theme } = useTheme();
-  const { userProfile } = useAuth();
+  const { t } = useLocale();
+  const { userProfile, user } = useAuth();
   const role = userProfile?.role || 'rider';
   const keys = SECTION_GUIDE_KEYS_BY_ROLE[role] || SECTION_GUIDE_KEYS_BY_ROLE.rider;
   const [openId, setOpenId] = useState(null);
@@ -23,7 +23,7 @@ export default function SectionGuidesHubScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Text style={[styles.hint, { color: theme.colors.textSecondary }]}>
-        Tap a topic for tips. “Don’t show again” inside a guide only stops the automatic popup for that screen, not this list.
+        {t('sectionGuides.hubHint')}
       </Text>
       <FlatList
         data={rows}
@@ -36,7 +36,9 @@ export default function SectionGuidesHubScreen() {
             activeOpacity={0.85}
           >
             <Text style={[styles.rowTitle, { color: theme.colors.text }]}>{item.title}</Text>
-            <Text style={[styles.rowAction, { color: theme.colors.primary }]}>Open</Text>
+            <Text style={[styles.rowAction, { color: theme.colors.primary }]}>
+              {t('sectionGuides.hubOpen')}
+            </Text>
           </TouchableOpacity>
         )}
       />
@@ -46,11 +48,7 @@ export default function SectionGuidesHubScreen() {
           onClose={() => setOpenId(null)}
           sectionId={openId}
           onDismissForever={async () => {
-            try {
-              await AsyncStorage.setItem(dismissedKey(openId), '1');
-            } catch {
-              /* ignore */
-            }
+            await persistSectionGuideDismissed(openId, user?.uid || null);
           }}
         />
       ) : null}

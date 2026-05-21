@@ -2,34 +2,52 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TextInput,
-  TouchableOpacity,
+
   StyleSheet,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  ActivityIndicator,
 } from 'react-native';
-import { sendOTP, getCurrentAuthUid } from '../../services/authService';
+import ThemedTextInput from '../../components/ThemedTextInput';
+
+import { sendOTP, getCurrentAuthUid, phoneAuthAlertMessage } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
-import { isProductionApp } from '../../config/appEnv';
-import { APP_UI_BUILD_TAG } from '../../constants/appBuildTag';
+import AppPressable from '../../components/AppPressable';
+import { getNativeAppBuildLabel } from '../../constants/nativeAppBuildLabel';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ARMADA_LAST_PHONE_E164_KEY } from '../../constants/authStorageKeys';
+import { getPhoneAuthInstallWarning } from '../../constants/phoneAuthReleaseGate';
 
 export default function PhoneAuthScreen({ navigation }) {
   const { theme } = useTheme();
-  const { user, userProfile, loading: authLoading, demoMode } = useAuth();
+  const { user, userProfile, loading: authLoading } = useAuth();
   const [phone, setPhone] = useState('+1876');
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(ARMADA_LAST_PHONE_E164_KEY)
+      .then((stored) => {
+        if (cancelled || !stored || String(stored).trim().length < 10) return;
+        setPhone(String(stored).trim());
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Firebase session exists but no Firestore profile yet — don't leave user on the phone screen forever.
   useEffect(() => {
-    if (authLoading || demoMode) return;
+    if (authLoading) return;
     const uid = getCurrentAuthUid(user);
     if (uid && !userProfile) {
       navigation.replace('RoleSelect');
     }
-  }, [authLoading, demoMode, user, userProfile, navigation]);
+  }, [authLoading, user, userProfile, navigation]);
 
   const handleSendOTP = async () => {
     if (!phone || phone.length < 10) {
@@ -39,19 +57,18 @@ export default function PhoneAuthScreen({ navigation }) {
     setLoading(true);
     try {
       await sendOTP(phone);
+      try {
+        await AsyncStorage.setItem(ARMADA_LAST_PHONE_E164_KEY, String(phone).trim());
+      } catch (_) {}
       navigation.navigate('OTP', { phone });
     } catch (e) {
-      if (isProductionApp) {
-        Alert.alert('Error', e.message || 'Failed to send OTP. Check your number and try again.');
-      } else {
-        Alert.alert('Error', e.message || 'Failed to send OTP. Use demo mode.');
-        navigation.navigate('OTP', { phone, demo: true });
-      }
+      Alert.alert('Error', phoneAuthAlertMessage(e, 'Failed to send OTP'));
     } finally {
       setLoading(false);
     }
   };
 
+  const installWarning = getPhoneAuthInstallWarning();
   const styles = createStyles(theme);
   return (
     <KeyboardAvoidingView
@@ -61,11 +78,8 @@ export default function PhoneAuthScreen({ navigation }) {
       <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <Text style={styles.title}>Armada 🇯🇲</Text>
         <Text style={styles.subtitle}>Bid your price. Ride Armada.</Text>
-        <Text style={styles.buildTag} selectable>
-          {APP_UI_BUILD_TAG}
-        </Text>
         <View style={styles.form}>
-          <TextInput
+          <ThemedTextInput
             style={styles.input}
             placeholder="+1 876 123 4567"
             value={phone}
@@ -73,35 +87,33 @@ export default function PhoneAuthScreen({ navigation }) {
             keyboardType="phone-pad"
             placeholderTextColor={theme.colors.textSecondary}
           />
-          <TouchableOpacity
+          <AppPressable
+            variant="primary"
+            theme={theme}
             style={[styles.button, loading && styles.buttonDisabled]}
             onPress={handleSendOTP}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>{loading ? 'Sending...' : 'Send OTP'}</Text>
-          </TouchableOpacity>
-          {!isProductionApp && (
-            <TouchableOpacity
-              style={styles.demoButton}
-              onPress={() => navigation.navigate('OTP', { phone: phone.replace(/\s/g, '') || '+18761234567', demo: true })}
-            >
-              <Text style={styles.demoText}>
-                {Platform.OS === 'web' ? 'Demo Mode (skip OTP)' : 'Demo Mode (or use dev build for real OTP)'}
-              </Text>
-            </TouchableOpacity>
-          )}
+            <View style={styles.buttonRow}>
+              {loading ? <ActivityIndicator color={theme.colors.onPrimary} /> : null}
+              <Text style={styles.buttonText}>{loading ? 'Sending…' : 'Send OTP'}</Text>
+            </View>
+          </AppPressable>
         </View>
         <View style={styles.legalLinks}>
           <Text style={styles.legalText}>By continuing, you agree to our </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('PrivacyPolicy')}>
+          <AppPressable variant="list" theme={theme} onPress={() => navigation.navigate('PrivacyPolicy')}>
             <Text style={styles.legalLink}>Privacy Policy</Text>
-          </TouchableOpacity>
+          </AppPressable>
           <Text style={styles.legalText}> and </Text>
-          <TouchableOpacity onPress={() => navigation.navigate('Terms')}>
+          <AppPressable variant="list" theme={theme} onPress={() => navigation.navigate('Terms')}>
             <Text style={styles.legalLink}>Terms of Service</Text>
-          </TouchableOpacity>
+          </AppPressable>
           <Text style={styles.legalText}>.</Text>
         </View>
+        <Text style={styles.buildStamp} selectable>
+          Store build: {getNativeAppBuildLabel()}
+        </Text>
       </ScrollView>
       <View id="recaptcha-container" />
     </KeyboardAvoidingView>
@@ -130,15 +142,21 @@ const createStyles = (theme) => StyleSheet.create({
     fontSize: 16,
     color: theme.colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 8,
-  },
-  buildTag: {
-    fontSize: 11,
-    color: theme.colors.primary,
-    textAlign: 'center',
-    fontWeight: '600',
     marginBottom: 20,
-    paddingHorizontal: 12,
+  },
+  updateBanner: {
+    backgroundColor: theme.colors.error + '18',
+    borderWidth: 1,
+    borderColor: theme.colors.error + '55',
+    borderRadius: theme.borderRadius.md,
+    padding: 12,
+    marginBottom: 16,
+  },
+  updateBannerText: {
+    fontSize: 13,
+    lineHeight: 19,
+    color: theme.colors.text,
+    fontWeight: '600',
   },
   form: {
     gap: 16,
@@ -157,6 +175,7 @@ const createStyles = (theme) => StyleSheet.create({
     borderRadius: theme.borderRadius.md,
     alignItems: 'center',
   },
+  buttonRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   buttonDisabled: {
     opacity: 0.6,
   },
@@ -164,18 +183,6 @@ const createStyles = (theme) => StyleSheet.create({
     color: theme.colors.white,
     fontSize: 18,
     fontWeight: 'bold',
-  },
-  demoButton: {
-    padding: 12,
-    alignItems: 'center',
-    marginTop: 8,
-    backgroundColor: theme.colors.yellow,
-    borderRadius: theme.borderRadius.md,
-  },
-  demoText: {
-    color: theme.colors.black,
-    fontSize: 14,
-    fontWeight: '600',
   },
   legalLinks: {
     flexDirection: 'row',
@@ -194,5 +201,13 @@ const createStyles = (theme) => StyleSheet.create({
     color: theme.colors.primary,
     fontWeight: '600',
     textDecorationLine: 'underline',
+  },
+  buildStamp: {
+    marginTop: 16,
+    fontSize: 12,
+    lineHeight: 17,
+    color: theme.colors.textSecondary,
+    textAlign: 'center',
+    fontWeight: '600',
   },
 });

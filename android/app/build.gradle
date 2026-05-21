@@ -4,18 +4,6 @@ apply plugin: "com.facebook.react"
 
 def projectRoot = rootDir.getAbsoluteFile().getParentFile().getAbsolutePath()
 
-// Google Maps API key - read from local.properties (never commit)
-def localPropertiesFile = rootProject.file("local.properties")
-def googleMapsApiKey = ""
-if (localPropertiesFile.exists()) {
-    def props = new Properties()
-    props.load(new FileInputStream(localPropertiesFile))
-    googleMapsApiKey = props.getProperty("GOOGLE_MAPS_API_KEY", "")
-}
-if (!googleMapsApiKey && project.hasProperty("GOOGLE_MAPS_API_KEY")) {
-    googleMapsApiKey = project.getProperty("GOOGLE_MAPS_API_KEY")
-}
-
 /**
  * This is the configuration block to customize your React Native Android app.
  * By default you don't need to apply any configuration, just uncomment the lines you need.
@@ -93,22 +81,37 @@ def enableMinifyInReleaseBuilds = (findProperty('android.enableMinifyInReleaseBu
  */
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
+/** Play / local release: android/keystore.properties + upload .jks (see scripts/install-play-upload-keystore.js). */
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+/** True when android/keystore.properties defines an upload keystore (Play expects this cert). */
+def storeFileProp = keystoreProperties['storeFile']
+def keyAliasProp = keystoreProperties['keyAlias']
+def hasPlayUploadKeystore =
+    keystorePropertiesFile.exists() &&
+    storeFileProp != null && storeFileProp.trim().length() > 0 &&
+    keyAliasProp != null && keyAliasProp.trim().length() > 0
+
+apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle")
+
 android {
     ndkVersion rootProject.ext.ndkVersion
 
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.armada.app'
+    namespace 'com.armada.ride'
     defaultConfig {
-        applicationId 'com.armada.app'
+        applicationId 'com.armada.ride'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0.0"
+        versionCode 56
+        versionName "10.12.25"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
-        manifestPlaceholders = [GOOGLE_MAPS_API_KEY: googleMapsApiKey]
     }
     signingConfigs {
         debug {
@@ -117,15 +120,37 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        release {
+            if (hasPlayUploadKeystore) {
+                storeFile rootProject.file(keystoreProperties['storeFile'])
+                storePassword keystoreProperties['storePassword']
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
+            // Play Console requires the *upload* keystore (android/keystore.properties). Never default to debug.
+            if (hasPlayUploadKeystore) {
+                signingConfig signingConfigs.release
+            } else {
+                def allowDebugRelease = (findProperty('armada.allowDebugReleaseSigning') ?: 'false').toBoolean()
+                if (allowDebugRelease) {
+                    println("\n[Armada] WARNING: release uses DEBUG signing (-Parmada.allowDebugReleaseSigning=true). Do not upload this artifact to Play.\n")
+                    signingConfig signingConfigs.debug
+                } else {
+                    throw new GradleException(
+                        "[Armada] Play upload keystore missing/incomplete: create android/keystore.properties + your .jks (expected cert SHA-1 DF:66:72:3F:06:9F:EB:6B:93:60:F7:FC:9F:DE:65:E9:B4:2F:AA:0F).\n" +
+                        "Run:  node scripts/install-play-upload-keystore.js path/to/upload.keystore.jks\n" +
+                        "Then: npm run android:verify-play-upload-keystore\n" +
+                        "Local-only unsigned-for-Play test: ./gradlew bundleRelease -Parmada.allowDebugReleaseSigning=true\n"
+                    )
+                }
+            }
             def enableShrinkResources = findProperty('android.enableShrinkResourcesInReleaseBuilds') ?: 'false'
             shrinkResources enableShrinkResources.toBoolean()
             minifyEnabled enableMinifyInReleaseBuilds
@@ -168,6 +193,9 @@ android {
 dependencies {
     // The version of react-native is set by the React Native Gradle Plugin
     implementation("com.facebook.react:react-android")
+
+    /** Firebase phone auth: ensure Play Integrity client is present (helps low-end / Samsung builds). */
+    implementation("com.google.android.play:integrity:1.4.0")
 
     def isGifEnabled = (findProperty('expo.gif.enabled') ?: "") == "true";
     def isWebpEnabled = (findProperty('expo.webp.enabled') ?: "") == "true";

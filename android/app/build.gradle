@@ -95,6 +95,49 @@ def hasPlayUploadKeystore =
     storeFileProp != null && storeFileProp.trim().length() > 0 &&
     keyAliasProp != null && keyAliasProp.trim().length() > 0
 
+/** Maps key for manifest merge — never commit a literal in AndroidManifest.xml. */
+def invalidMapsKey = { String k ->
+    k == null || k.trim().isEmpty() || k.contains('YOUR_GOOGLE_MAPS')
+}
+def readMapsKeyFromPropsFile = { File propsFile ->
+    if (propsFile == null || !propsFile.exists()) return ''
+    def props = new Properties()
+    propsFile.withInputStream { props.load(it) }
+    def k = props.getProperty('GOOGLE_MAPS_API_KEY', '')
+    invalidMapsKey(k) ? '' : k.trim()
+}
+def readMapsKeyFromGoogleServices = { File gsFile ->
+    if (gsFile == null || !gsFile.exists()) return ''
+    try {
+        def json = new groovy.json.JsonSlurper().parse(gsFile)
+        def clients = json?.client ?: []
+        def match = clients.find { it?.client_info?.android_client_info?.package_name == 'com.armada.ride' }
+        def client = match ?: clients[0]
+        def k = client?.api_key?[0]?.current_key ?: ''
+        invalidMapsKey(k?.toString()) ? '' : k.toString().trim()
+    } catch (Exception ignored) {
+        return ''
+    }
+}
+def resolveGoogleMapsApiKey = {
+    def fromEnv = (System.getenv('EXPO_PUBLIC_GOOGLE_MAPS_ANDROID_KEY') ?: System.getenv('GOOGLE_MAPS_API_KEY') ?: '').trim()
+    if (!invalidMapsKey(fromEnv)) return fromEnv
+
+    def fromSecrets = readMapsKeyFromPropsFile(file('secrets.properties'))
+    if (!invalidMapsKey(fromSecrets)) return fromSecrets
+
+    def fromGoogleServices = readMapsKeyFromGoogleServices(file('google-services.json'))
+    if (!invalidMapsKey(fromGoogleServices)) return fromGoogleServices
+    fromGoogleServices = readMapsKeyFromGoogleServices(rootProject.file('../google-services.json'))
+    if (!invalidMapsKey(fromGoogleServices)) return fromGoogleServices
+
+    def fromLocal = readMapsKeyFromPropsFile(rootProject.file('local.properties'))
+    if (!invalidMapsKey(fromLocal)) return fromLocal
+
+    return 'YOUR_GOOGLE_MAPS_API_KEY'
+}
+def googleMapsApiKey = resolveGoogleMapsApiKey()
+
 apply from: new File(["node", "--print", "require('path').dirname(require.resolve('@sentry/react-native/package.json'))"].execute().text.trim(), "sentry.gradle")
 
 android {
@@ -111,6 +154,7 @@ android {
         versionCode 56
         versionName "10.12.25"
 
+        manifestPlaceholders = [GOOGLE_MAPS_API_KEY: googleMapsApiKey]
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
     signingConfigs {
